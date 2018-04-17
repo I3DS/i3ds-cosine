@@ -3,6 +3,7 @@ set (SRCS
 
 set (LIBS
   i3ds
+  zmq
   )
 
 set (APPS
