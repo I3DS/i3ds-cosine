@@ -3,6 +3,7 @@ find_package (Boost COMPONENTS program_options log REQUIRED)
 set (SRCS
    emulated_camera.cpp
    periodic_sampler.cpp
+   ebus_camera_interface.cpp
   )
 
 set (LIBS

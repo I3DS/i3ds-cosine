@@ -14,6 +14,8 @@
 #include "i3ds/emulators/emulated_camera.hpp"
 
 
+#include "../include/ebus_camera_interface.hpp"
+
 #define BOOST_LOG_DYN_LINK
 
 #include <boost/log/core.hpp>
@@ -36,6 +38,9 @@ i3ds::EmulatedCamera::EmulatedCamera(Context::Ptr context, NodeID node, int resx
     sampler_(std::bind(&i3ds::EmulatedCamera::send_sample, this, std::placeholders::_1)),
     publisher_(context, node)
 {
+
+  EbusCameraInterface * ebusCameraInterface = new EbusCameraInterface();
+
   exposure_ = 0;
   gain_ = 0.0;
 
