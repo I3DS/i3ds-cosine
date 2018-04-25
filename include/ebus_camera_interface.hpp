@@ -10,14 +10,28 @@
 
 
 
-class EbusCameraInterface {
+
+#include <PvDevice.h>
+
+
+class EbusCameraInterface: protected PvDeviceEventSink {
   
   public:
     EbusCameraInterface();
+    
+    bool connect();
+    
+    
   
   protected:
-  
+    
+    // Inherited from PvDeviceEventSink.
+    void OnLinkDisconnected(PvDevice* aDevice);
+    
   private:
   
-  
+    bool mConnectionLost;
+    
+    PvString mConnectionID;
+    PvDevice* mDevice;
 };
