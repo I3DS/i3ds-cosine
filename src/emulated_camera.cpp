@@ -78,6 +78,8 @@ i3ds::EmulatedCamera::do_activate()
 {
   BOOST_LOG_TRIVIAL(info) << "do_activate()";
   ebusCameraInterface->connect();
+  exposure_ = ebusCameraInterface->getExposure();
+  BOOST_LOG_TRIVIAL(info) << "Exposure: " << exposure_;
 }
 
 void
@@ -90,7 +92,7 @@ i3ds::EmulatedCamera::do_start()
 void
 i3ds::EmulatedCamera::do_stop()
 {
-	BOOST_LOG_TRIVIAL(info) << "do_stop()";
+  BOOST_LOG_TRIVIAL(info) << "do_stop()";
   sampler_.Stop();
 }
 
@@ -177,4 +179,23 @@ i3ds::EmulatedCamera::send_sample(unsigned long timestamp_us)
   publisher_.Send<ImageMeasurement>(frame_);
 
   return true;
+}
+
+
+void
+i3ds::EmulatedCamera::handle_configuration(ConfigurationService::Data& config) const
+{
+  BOOST_LOG_TRIVIAL(info) << "handle_configuration()";
+
+  config.response.exposure = ebusCameraInterface->getExposure();
+  config.response.gain = ebusCameraInterface->getGain();
+  config.response.auto_exposure_enabled = ebusCameraInterface->getAutoExposureEnabled();
+  config.response.max_exposure = ebusCameraInterface->getMaxExposure();
+  config.response.max_gain = ebusCameraInterface->getMaxGain();
+  config.response.region_enabled = ebusCameraInterface->getRegionEnabled();
+  config.response.region = ebusCameraInterface->getRegion();
+  config.response.flash_enabled = flash_enabled();
+  config.response.flash_strength = flash_strength();
+  config.response.pattern_enabled = pattern_enabled();
+  config.response.pattern_sequence = pattern_sequence();
 }

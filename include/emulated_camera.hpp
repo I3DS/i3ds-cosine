@@ -91,6 +91,10 @@ private:
 
   EbusCameraInterface * ebusCameraInterface;
 
+  void handle_configuration(ConfigurationService::Data& config) const;
+
+
+
 };
 
 } // namespace i3ds

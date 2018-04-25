@@ -11,7 +11,7 @@
 #ifndef __I3DS_EBUS_CAMERA_INTERFACE_HPP
 #define __I3DS_EBUS_CAMERA_INTERFACE_HPP
 
-
+#include "i3ds/sensors/camera.hpp"
 
 
 #include <PvDevice.h>
@@ -23,6 +23,20 @@ class EbusCameraInterface: protected PvDeviceEventSink {
     EbusCameraInterface();
     
     bool connect();
+    void collectParameters();
+    int64_t getParameter(PvString whichParameter);
+    int64_t getMaxParameter(PvString whichParameter);
+    bool getBooleanParameter(PvString whichParameter);
+    char * getEnum(PvString whichParameter);
+    int64_t getExposure();
+    int64_t getGain();
+    PlanarRegion getRegion();
+    int64_t getMaxGain();
+    int64_t getMaxExposure();
+    bool getAutoExposureEnabled();
+    bool getRegionEnabled();
+
+
     
     
   
@@ -37,6 +51,7 @@ class EbusCameraInterface: protected PvDeviceEventSink {
     
     PvString mConnectionID;
     PvDevice* mDevice;
+    PvGenParameterArray *lParameters;
 };
 
 #endif
