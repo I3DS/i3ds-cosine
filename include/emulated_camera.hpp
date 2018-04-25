@@ -8,6 +8,10 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
+
+
+
+
 #ifndef __I3DS_EMULATED_CAMERA_HPP
 #define __I3DS_EMULATED_CAMERA_HPP
 
@@ -15,6 +19,8 @@
 #include "i3ds/core/publisher.hpp"
 #include "i3ds/sensors/camera.hpp"
 #include "i3ds/emulators/periodic_sampler.hpp"
+
+#include "ebus_camera_interface.hpp"
 
 namespace i3ds
 {
@@ -82,6 +88,9 @@ private:
 
   Publisher publisher_;
   CameraMeasurement4M frame_;
+
+  EbusCameraInterface * ebusCameraInterface;
+
 };
 
 } // namespace i3ds

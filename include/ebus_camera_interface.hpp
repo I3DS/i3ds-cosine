@@ -8,6 +8,9 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
+#ifndef __I3DS_EBUS_CAMERA_INTERFACE_HPP
+#define __I3DS_EBUS_CAMERA_INTERFACE_HPP
+
 
 
 
@@ -35,3 +38,5 @@ class EbusCameraInterface: protected PvDeviceEventSink {
     PvString mConnectionID;
     PvDevice* mDevice;
 };
+
+#endif

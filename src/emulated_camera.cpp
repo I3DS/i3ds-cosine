@@ -11,7 +11,7 @@
 #include <iostream>
 
 
-#include "i3ds/emulators/emulated_camera.hpp"
+#include "../include/emulated_camera.hpp"
 
 
 #include "../include/ebus_camera_interface.hpp"
@@ -39,7 +39,7 @@ i3ds::EmulatedCamera::EmulatedCamera(Context::Ptr context, NodeID node, int resx
     publisher_(context, node)
 {
 
-  EbusCameraInterface * ebusCameraInterface = new EbusCameraInterface();
+  ebusCameraInterface = new EbusCameraInterface();
 
   exposure_ = 0;
   gain_ = 0.0;
@@ -77,6 +77,7 @@ void
 i3ds::EmulatedCamera::do_activate()
 {
   BOOST_LOG_TRIVIAL(info) << "do_activate()";
+  ebusCameraInterface->connect();
 }
 
 void

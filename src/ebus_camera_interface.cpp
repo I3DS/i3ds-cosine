@@ -45,6 +45,7 @@ EbusCameraInterface::EbusCameraInterface() {
 
 bool EbusCameraInterface::connect() {
   BOOST_LOG_TRIVIAL(info) << "Connecting to camera";
+  mConnectionID = "10.0.1.111";
   
   std::cout << "--> ConnectDevice " << mConnectionID.GetAscii() << std::endl;
 
@@ -55,12 +56,14 @@ bool EbusCameraInterface::connect() {
       BOOST_LOG_TRIVIAL(info) << "CreateAndConnect problem";
   	return false;
   }
-
+  
+  
   // Register this class as an event sink for PvDevice call-backs
   mDevice->RegisterEventSink(this);
 
   // Clear connection lost flag as we are now connected to the device
   mConnectionLost = false;
+  BOOST_LOG_TRIVIAL(info) << "Connected to Camera";
   
   return true;
 }
