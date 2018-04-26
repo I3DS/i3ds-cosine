@@ -26,8 +26,14 @@ class EbusCameraInterface: protected PvDeviceEventSink {
     void collectParameters();
     int64_t getParameter(PvString whichParameter);
     int64_t getMaxParameter(PvString whichParameter);
+    int64_t getMinParameter(PvString whichParameter);
     bool getBooleanParameter(PvString whichParameter);
     char * getEnum(PvString whichParameter);
+    void setEnum(PvString whichParameter, PvString value);
+    bool checkIfEnumOptionIsOK(PvString whichParameter, PvString value);
+
+    bool setIntParameter(PvString whichParameter, int64_t value);
+
     int64_t getExposure();
     int64_t getGain();
     PlanarRegion getRegion();
@@ -35,6 +41,15 @@ class EbusCameraInterface: protected PvDeviceEventSink {
     int64_t getMaxExposure();
     bool getAutoExposureEnabled();
     bool getRegionEnabled();
+
+    void setTriggerInterval(int64_t);
+    bool checkTriggerInterval(int64_t);
+    void setAutoExposure(int64_t value);
+    void setAutoExposureEnabled(bool value);
+    void setGain(int64_t value);
+    void setRegionEnabled(bool regionEnabled);
+    void setRegion(PlanarRegion region);
+
 
 
     

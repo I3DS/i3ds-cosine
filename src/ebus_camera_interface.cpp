@@ -47,7 +47,7 @@ bool EbusCameraInterface::connect() {
   BOOST_LOG_TRIVIAL(info) << "Connecting to camera";
   mConnectionID = "10.0.1.111";
   
-  std::cout << "--> ConnectDevice " << mConnectionID.GetAscii() << std::endl;
+  BOOST_LOG_TRIVIAL(info) << "--> ConnectDevice " << mConnectionID.GetAscii();
 
   // Connect to the selected Device
   PvResult lResult = PvResult::Code::INVALID_PARAMETER;
@@ -102,7 +102,7 @@ int64_t EbusCameraInterface::getParameter(PvString whichParameter) {
   PvGenInteger *lIntParameter = dynamic_cast<PvGenInteger *>(lParameter);
 
   if (lIntParameter == NULL) {
-    std::cout << "Unable to get the parameter: "<< whichParameter.GetAscii() << std::endl;
+    BOOST_LOG_TRIVIAL(info) << "Unable to get the parameter: "<< whichParameter.GetAscii();
   }
 
   // Read current width value.
@@ -116,6 +116,36 @@ int64_t EbusCameraInterface::getParameter(PvString whichParameter) {
     return lParameterValue;
   }
 }
+
+
+
+// Fetching minimum allowed value of parameter
+int64_t EbusCameraInterface::getMinParameter(PvString whichParameter) {
+
+	PvGenParameter *lParameter = lParameters->Get(whichParameter);
+
+	// Converter generic parameter to width using dynamic cast. If the
+	// type is right, the conversion will work otherwise lWidth will be NULL.
+	PvGenInteger *lMinParameter = dynamic_cast<PvGenInteger *>(lParameter);
+
+	if (lMinParameter == NULL) {
+	    BOOST_LOG_TRIVIAL(info) << "Unable to get the Minimum parameter for: " 
+		 << whichParameter.GetAscii();
+	}
+
+	int64_t lMinValue = 0;
+	if (!(lMinParameter->GetMin(lMinValue).IsOK())) {
+	    BOOST_LOG_TRIVIAL(info) << "Error retrieving minimum value from device";
+	} else {
+	    BOOST_LOG_TRIVIAL(info) << "Minimum value for parameter: " << whichParameter.GetAscii() 
+		<< " : "<< lMinValue;
+	    return lMinValue;
+	}
+}
+
+
+
+
 
 
 // Get maximum allowed value of parameter.
@@ -177,25 +207,7 @@ char * EbusCameraInterface::getEnum(PvString whichParameter){
     asprintf(&str, "%s", lValue.GetAscii());
     return str;
 		    
-			    /*
 			
-			To pull out enums options
-			
-			int64_t aCount;
-			static_cast<PvGenEnum *>( lGenParameter )->GetEntriesCount (aCount);
-			cout << "Enum entries: " << aCount << endl;
-
-			for(int i=0; i<aCount;i++){
-
-				const PvGenEnumEntry *aEntry;
-
-				static_cast<PvGenEnum *>( lGenParameter )->GetEntryByValue(i, &aEntry);
-				PvString s;
-				aEntry->GetName(s);
-				cout << "EnumText: "<< s.GetAscii() << endl;
-			}
-			
-			*/
         }else
         {
           BOOST_LOG_TRIVIAL(info) << "Not a enum ";
@@ -205,7 +217,66 @@ char * EbusCameraInterface::getEnum(PvString whichParameter){
 }
 
 
+bool EbusCameraInterface::checkIfEnumOptionIsOK(PvString whichParameter, PvString value){
+  BOOST_LOG_TRIVIAL(info) << "checkIfEnumOptionIsOK: Parameter: " <<  whichParameter.GetAscii()
+      << "Value: " << value.GetAscii();
+			
+  //To pull out enums options
+  
+  int64_t aCount;
+  
+  auto *lGenParameter = lParameters->Get(whichParameter);
+  static_cast<PvGenEnum *>( lGenParameter )->GetEntriesCount (aCount);
+  BOOST_LOG_TRIVIAL(info) << "Enum entries: " << aCount;
+  
+  for(int i=0; i<aCount;i++){
+  
+    const PvGenEnumEntry *aEntry;
 
+    static_cast<PvGenEnum *>( lGenParameter )->GetEntryByValue(i, &aEntry);
+    PvString enumOption;
+    aEntry->GetName(enumOption);
+    BOOST_LOG_TRIVIAL(info) << "EnumText["<< i << "]: "<< enumOption.GetAscii();
+    if(enumOption == value){
+	BOOST_LOG_TRIVIAL(info) << "Option found.";
+	return true;
+    }
+  }
+  BOOST_LOG_TRIVIAL(info) << "Option not found.";
+  return false;
+
+}
+
+
+void EbusCameraInterface::setEnum(PvString whichParameter, PvString value) {
+  BOOST_LOG_TRIVIAL(info) << "setEnum: Parameter: " <<  whichParameter.GetAscii() 
+      << "Value: " << value.GetAscii();
+  BOOST_LOG_TRIVIAL(info) << "do checkIfEnumOptionIsOK: Parameter first";
+  
+  if(checkIfEnumOptionIsOK( whichParameter, value)){
+
+      PvGenParameter *lParameter = lParameters->Get(whichParameter);
+      auto *lEnumParameter = dynamic_cast<PvGenEnum *>(lParameter);
+
+      if (lEnumParameter == NULL) {
+	BOOST_LOG_TRIVIAL(info) << "Unable to get the parameter: "<< whichParameter.GetAscii();
+      }
+
+     
+      if (!(lEnumParameter->SetValue(value).IsOK())) {
+        BOOST_LOG_TRIVIAL(info) << "Error setting parameter for device";
+        return;
+      } else {
+        BOOST_LOG_TRIVIAL(info) << "Parameter value: " << value.GetAscii() <<
+    		" set for parameter: " << whichParameter.GetAscii();
+        return;
+      }
+      
+      
+  }else{
+      BOOST_LOG_TRIVIAL(info) << "Illegal parameter value";
+  }  
+}
 
 
 bool EbusCameraInterface::getBooleanParameter(PvString whichParameter) {
@@ -226,6 +297,57 @@ bool EbusCameraInterface::getBooleanParameter(PvString whichParameter) {
   }
 }
 
+
+
+// Sets an integer Parameter on device
+bool EbusCameraInterface::setIntParameter(PvString whichParameter, int64_t value) {
+{
+  PvGenParameter *lParameter = lParameters->Get(whichParameter);
+
+  // Converter generic parameter to width using dynamic cast. If the
+  // type is right, the conversion will work otherwise lWidth will be NULL.
+  PvGenInteger *lvalueParameter = dynamic_cast<PvGenInteger *>(lParameter);
+
+  if (lvalueParameter == NULL) {
+    BOOST_LOG_TRIVIAL(info) << "SetParameter: Unable to get the parameter: " <<
+	  whichParameter.GetAscii();
+  }
+
+  int64_t max = getMaxParameter(whichParameter);
+  if (value > max) {
+    BOOST_LOG_TRIVIAL(info) << "Setting value Error: Parameter: " <<
+	  whichParameter.GetAscii() << " value to big " << value <<  "> " << max;
+    BOOST_LOG_TRIVIAL(info) <<"Rounding to max";
+    value = max;
+  };
+
+  int64_t min = getMinParameter(whichParameter);
+  if (value < min){
+    BOOST_LOG_TRIVIAL(info) << "Error: value to small " << value << "<" << min;
+    BOOST_LOG_TRIVIAL(info) <<"Rounding to min";
+    value = min;	
+  };
+  /// TODO: Increment also?
+
+
+  PvResult res = lvalueParameter->SetValue(value);
+  if (res.IsOK() != true) {
+      BOOST_LOG_TRIVIAL(info) << "SetValue Error: " << whichParameter.GetAscii();
+      return false;
+  } else {
+      BOOST_LOG_TRIVIAL(info) << "SetValue Ok: " << whichParameter.GetAscii() << "=" << value;
+      return true;
+  }
+
+}
+
+
+
+
+
+}
+
+
  
 // Todo This is actually a boolean!!!!
 bool EbusCameraInterface::getAutoExposureEnabled(){
@@ -244,7 +366,7 @@ bool EbusCameraInterface::getAutoExposureEnabled(){
   }
   BOOST_LOG_TRIVIAL(info) << retval;
 
-  free(str);
+  delete(str);
   return retval;
 }
 
@@ -253,6 +375,7 @@ bool EbusCameraInterface::getRegionEnabled(){
   BOOST_LOG_TRIVIAL(info) << "Fetching parameter: RegionEnabled";
   return true;
 }
+
 
 
 int64_t EbusCameraInterface::getExposure(){
@@ -300,3 +423,75 @@ PlanarRegion EbusCameraInterface::getRegion(){
   return region;
 }
 
+
+
+void EbusCameraInterface::setTriggerInterval(int64_t value) {
+  BOOST_LOG_TRIVIAL(info) << "Set TriggerInterval: " << value;
+}
+
+
+bool EbusCameraInterface::checkTriggerInterval(int64_t value) {
+  BOOST_LOG_TRIVIAL(info) << "Check TriggerInterval: " << value;
+  return true;
+}
+
+
+void EbusCameraInterface::setAutoExposure(int64_t value) {
+  BOOST_LOG_TRIVIAL(info) << "Set Exposure (ShutterTimeValue): " << value;
+  setIntParameter("ShutterTimeValue", value);
+}
+
+
+void EbusCameraInterface::setGain(int64_t value) {
+  BOOST_LOG_TRIVIAL(info) << "Set Gain(GainValue): " << value;
+  setIntParameter("GainValue", value);
+}
+
+
+void EbusCameraInterface::setAutoExposureEnabled(bool enabled){
+  BOOST_LOG_TRIVIAL(info) << "Set setAutoExposureEnabled(AutoExposure): " << enabled;
+  if(enabled) {
+    setEnum("AutoExposure", "ON");
+  }else{
+    setEnum("AutoExposure", "OFF");
+    }
+  
+}
+
+void EbusCameraInterface::setRegionEnabled(bool regionEnabled){
+  
+  BOOST_LOG_TRIVIAL(info) << "Set setRegionEnabled (Manually done): " << regionEnabled;
+  
+  if(regionEnabled){
+      ;
+  }else{
+     // getIntParameter("Width");
+      //getIntParameter("Height");
+      setIntParameter("OffsetY", 0);
+      setIntParameter("RegionHeight", 0);
+      
+  }
+}
+void EbusCameraInterface::setRegion(PlanarRegion region){
+    
+  BOOST_LOG_TRIVIAL(info) << " setRegion (Manually done): ";
+
+  int64_t size_x = getParameter("Width");
+  int64_t size_y = getParameter("Height");
+  int64_t offset_x = getParameter("OffsetY");
+  int64_t offset_y = getParameter("RegionHeight");
+  
+  
+     /*
+    setregion.offset_x = offset_x;
+    if(region.)
+    min =
+    
+    
+    region.offset_y = offset_y;
+    region.size_x = size_x;
+    region.size_y= size_y;  
+
+    return region;
+  */
+}

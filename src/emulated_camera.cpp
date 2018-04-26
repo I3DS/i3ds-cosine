@@ -105,7 +105,9 @@ i3ds::EmulatedCamera::do_deactivate()
 bool
 i3ds::EmulatedCamera::is_rate_supported(SampleRate rate)
 {
-  BOOST_LOG_TRIVIAL(info) << "is_rate_supported()";
+  BOOST_LOG_TRIVIAL(info) << "is_rate_supported()" << rate;
+  ebusCameraInterface->checkTriggerInterval(rate);
+  //rate_ = rate;
   return 0 < rate && rate <= 10000000;
 }
 
@@ -115,7 +117,9 @@ i3ds::EmulatedCamera::handle_exposure(ExposureService::Data& command)
   BOOST_LOG_TRIVIAL(info) << "handle_exposure()";
   auto_exposure_enabled_ = false;
   exposure_ = command.request.exposure;
+  ebusCameraInterface->setAutoExposure(command.request.exposure);
   gain_ = command.request.gain;
+  ebusCameraInterface->setGain(command.request.gain);
 }
 
 void
@@ -123,11 +127,17 @@ i3ds::EmulatedCamera::handle_auto_exposure(AutoExposureService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "handle_auto_exposure()";
   auto_exposure_enabled_ = command.request.enable;
+  BOOST_LOG_TRIVIAL(info) << "handle_auto_exposure: enable: "<< command.request.enable;
+  ebusCameraInterface->setAutoExposureEnabled(command.request.enable);
 
   if (command.request.enable)
     {
-      max_exposure_ = command.request.max_exposure;
-      max_gain_ = command.request.max_gain;
+      //max_exposure_ = command.request.max_exposure;
+      //max_gain_ = command.request.max_gain;
+      ebusCameraInterface->setAutoExposure(command.request.max_exposure);
+      ebusCameraInterface->setGain(command.request.max_gain);
+
+
     }
 }
 
@@ -136,10 +146,11 @@ i3ds::EmulatedCamera::handle_region(RegionService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "handle_region()";
   region_enabled_ = command.request.enable;
+  ebusCameraInterface->setRegionEnabled(command.request.enable);
 
   if (command.request.enable)
     {
-      region_ = command.request.region;
+      ebusCameraInterface->setRegion(command.request.region);
     }
 }
 
@@ -171,7 +182,7 @@ bool
 i3ds::EmulatedCamera::send_sample(unsigned long timestamp_us)
 {
   BOOST_LOG_TRIVIAL(info) << "send_sample()";
-  std::cout << "Send: " << timestamp_us << std::endl;
+  BOOST_LOG_TRIVIAL(info) << "Send: " << auto_exposure_enabled_ << timestamp_us;
 
   frame_.attributes.timestamp.microseconds = timestamp_us;
   frame_.attributes.validity = sample_valid;
