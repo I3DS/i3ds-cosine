@@ -2,7 +2,8 @@ set (SRCS
   )
 
 set (LIBS
-  i3ds
+  i3ds-core
+  i3ds-sensors
   zmq
   )
 
