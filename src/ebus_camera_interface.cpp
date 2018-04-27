@@ -671,173 +671,26 @@ EbusCameraInterface::StartAcquisition ()
     {
       // If using a GigE Vision, it is same to assume the stream object is GigE Vision as well
       PvStreamGEV* lStreamGEV = static_cast<PvStreamGEV*> (mStream);
-
-      // Have to set the Devicvoid EbusCameraInterface::ApplicationLoop() {
-      BOOST_LOG_TRIVIAL (info) << "--> ApplicationLoop";
-
-      bool first = true;
-
-      char lDoodle[] = "|\\-|-/";
-      int lDoodleIndex = 0;
-      bool lFirstTimeout = true;
-
-      int64_t lImageCountVal = 0;
-      double lFrameRateVal = 0.0;
-      double lBandwidthVal = 0.0;
-
-      // Acquire images until the user instructs us to stop.
-      while (!PvKbHit ())
-	{
-
-	  //If connection flag is up, teardown device/stream
-	  if (mConnectionLost && (mDevice != NULL))
-	    {
-	      // Device lost: no need to stop acquisition
-	      TearDown (false);
-	    }
-
-	  // Only set up tream first time and do not try to reconnect
-	  if (first == true)
-	    {
-	      BOOST_LOG_TRIVIAL (info) << "First sample-> round initialise";
-	      // Device is connected, open the stream
-	      if (OpenStream ())
-		{
-		  BOOST_LOG_TRIVIAL (info)
-		      << "OpenStream went well--> startAcquistion";
-		  // Device is connected, stream is opened: start acquisition
-		  if (!StartAcquisition ())
-		    {
-		      BOOST_LOG_TRIVIAL (info) << "--> StartAcquisition error";
-		      TearDown (false);
-		    }
-		}
-	      else
-		{
-		  BOOST_LOG_TRIVIAL (info) << "-->erg";
-		  TearDown (false);
-		}
-	      first = false;
-	    }
-
-	  // If still no device, no need to continue the loop	
-	  if (mDevice == NULL)
-	    {
-	      continue;
-	    }
-	  if ((mStream != NULL) && mStream->IsOpen () && (mPipeline != NULL)
-	      && mPipeline->IsStarted ())
-	    {
-	      // Retrieve next buffer
-	      PvBuffer *lBuffer = NULL;
-	      PvResult lOperationResult;
-	      PvResult lResult = mPipeline->RetrieveNextBuffer (
-		  &lBuffer, 1000, &lOperationResult);
-
-	      if (lResult.IsOK ())
-		{
-		  if (lOperationResult.IsOK ())
-		    {
-		      //
-		      // We now have a valid buffer. This is where you would typically process the buffer.
-		      // -----------------------------------------------------------------------------------------
-		      // ...
-
-		      mStream->GetParameters ()->GetIntegerValue (
-			  "BlockCount", lImageCountVal);
-		      mStream->GetParameters ()->GetFloatValue (
-			  "AcquisitionRate", lFrameRateVal);
-		      mStream->GetParameters ()->GetFloatValue ("Bandwidth",
-								lBandwidthVal);
-
-		      // If the buffer contains an image, display width and height.
-		      uint32_t lWidth = 0, lHeight = 0;
-		      if (lBuffer->GetPayloadType () == PvPayloadTypeImage)
-			{
-			  // Get image specific buffer interface.
-			  PvImage *lImage = lBuffer->GetImage ();
-
-			  // Read width, height.
-			  lWidth = lImage->GetWidth ();
-			  EbusCameraInterface::StopAcquisition (){
-			    BOOST_LOG_TRIVIAL (info) << "--> StopAcquisition";
-
-			   // Tell the device to stop sending images.
-			  mDevice->GetParameters ()->ExecuteCommand ("AcquisitionStop");
-
-			   // Disable stream after sending the AcquisitionStop command.
-			  mDevice->StreamDisable ();
-
-			  PvDeviceGEV* lDeviceGEV = dynamic_cast<PvDeviceGEV*> (mDevice);
-			  if (lDeviceGEV != NULL)
-			  {
-			    // Reset streaming destination (optional...)
-			    lDeviceGEV->ResetStreamDestination ();
-			  }		  lHeight = lImage->GetHeight ();
-			}
-
-		      std::cout << fixed << setprecision (1);
-		      std::cout << lDoodle[lDoodleIndex];
-		      std::cout << " BlockID: " << uppercase << hex
-			  << setfill ('0') << setw (16)
-			  << lBuffer->GetBlockID () << " W: " << dec << lWidth
-			  << " H: " << lHeight << " " << lFrameRateVal
-			  << " FPS " << (lBandwidthVal / 1000000.0)
-			  << " Mb/s  \r";
-
-		      lFirstTimeout = true;
-		    }
-		  // We have an image - do some processing (...) and VERY IMPORTANT,
-		  // release the buffer back to the pipeline.
-		  mPipeline->ReleaseBuffer (lBuffer);
-		}
-	      else
-		{
-		  // Timeout
-
-		  if (lFirstTimeout)
-		    {
-		      std::cout << "" << std::endl;
-		      lFirstTimeout = false;
-		    }
-
-		  std::cout << "Image timeout " << lDoodle[lDoodleIndex]
-		      << std::endl;
-		}
-
-	      ++lDoodleIndex %= 6;
-	    }
-	  else
-	    {
-	      // No stream/pipeline, must be in recovery. Wait a bit...
-	      PvSleepMs (100);
-	    }
-	}
-
-      PvGetChar (); // Flush key buffer for next stop.
-      std::cout << "" << std::endl;
-    }
-  e IP
-  destination to
-  the Stream
-  PvResult lResult = lDeviceGEV->SetStreamDestination (
+     
+      // Have to set the Device IP destination to the Stream
+      PvResult lResult = lDeviceGEV->SetStreamDestination (
       lStreamGEV->GetLocalIPAddress (), lStreamGEV->GetLocalPort ());
-  if (!lResult.IsOK ())
-    {
-      BOOST_LOG_TRIVIAL (info) << "Setting stream destination failed"
+      if (!lResult.IsOK ())
+	{
+	  BOOST_LOG_TRIVIAL (info) << "Setting stream destination failed"
 	  << lStreamGEV->GetLocalIPAddress ().GetAscii () << ":"
 	  << lStreamGEV->GetLocalPort ();
-      return false;
+	  return false;
+	}
     }
-}
 
-// Enables stream before sending the AcquisitionStart command.
-mDevice->StreamEnable ();
+  // Enables stream before sending the AcquisitionStart command.
+  mDevice->StreamEnable ();
 
-// The pipeline is already "armed", we just have to tell the device to start sending us images
-PvResult lResult = mDevice->GetParameters ()->ExecuteCommand (
+  // The pipeline is already "armed", we just have to tell the device to start sending us images
+  PvResult lResult = mDevice->GetParameters ()->ExecuteCommand (
     "AcquisitionStart");
-if (!lResult.IsOK ())
+  if (!lResult.IsOK ())
   {
     BOOST_LOG_TRIVIAL (info) << "Unable to start acquisition";
     return false;
