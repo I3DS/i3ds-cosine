@@ -1,5 +1,5 @@
-#include <i3ds/core/communication.hpp>
-#include <i3ds/sensors/camera.hpp>
+#include <i3ds/communication.hpp>
+#include <i3ds/camera_sensor.hpp>
 
 int main(int argc, char** argv)
 {
