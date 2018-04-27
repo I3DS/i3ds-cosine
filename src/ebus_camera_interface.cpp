@@ -533,7 +533,7 @@ bool EbusCameraInterface::OpenStream() {
 	    BOOST_LOG_TRIVIAL(info) << "Unable to open the stream";
 		return false;
 	}
-
+	 BOOST_LOG_TRIVIAL(info) << "--> 15";
 	mPipeline = new PvPipeline(mStream);
 
 	// Reading payload size from device
@@ -542,24 +542,26 @@ bool EbusCameraInterface::OpenStream() {
 	// Create, init the PvPipeline object
 	mPipeline->SetBufferSize(static_cast<uint32_t>(lSize));
 	mPipeline->SetBufferCount(16);
-
+	 BOOST_LOG_TRIVIAL(info) << "--> 115";
 	// The pipeline needs to be "armed", or started before  we instruct the device to send us images
 	lResult = mPipeline->Start();
 	if (!lResult.IsOK()) {
 	    BOOST_LOG_TRIVIAL(info) << "Unable to start pipeline";
 		return false;
 	}
-
+	 BOOST_LOG_TRIVIAL(info) << "--> 36";
 	// Only for GigE Vision, if supported
 	PvGenBoolean *lRequestMissingPackets =
 			dynamic_cast<PvGenBoolean *>(mStream->GetParameters()->GetBoolean(
 					"RequestMissingPackets"));
+	 BOOST_LOG_TRIVIAL(info) << "--> 237";
 	if ((lRequestMissingPackets != NULL)
 			&& lRequestMissingPackets->IsAvailable()) {
 		// Disabling request missing packets.
+	    BOOST_LOG_TRIVIAL(info) << "--> 28";
 		lRequestMissingPackets->SetValue(false);
 	}
-
+	 BOOST_LOG_TRIVIAL(info) << "--> 329";
 	return true;
 }
 
@@ -664,9 +666,9 @@ bool EbusCameraInterface::StopAcquisition() {
 
 void EbusCameraInterface::ApplicationLoop() {
   BOOST_LOG_TRIVIAL(info) << "--> ApplicationLoop";
-  DisconnectDevice();  
+//  DisconnectDevice();  
   BOOST_LOG_TRIVIAL(info) << "--> ApplicationLoop2";
-  
+  bool first = true;
   
 	char lDoodle[] = "|\\-|-/";
 	int lDoodleIndex = 0;
@@ -682,30 +684,41 @@ void EbusCameraInterface::ApplicationLoop() {
 	    //If connection flag is up, teardown device/stream
 		if (mConnectionLost && (mDevice != NULL)) {
 			// Device lost: no need to stop acquisition
+		    BOOST_LOG_TRIVIAL(info) << "--> 2";
 			TearDown(false);
 		}
-
+		if(first==true){
 		// If the device is not connected, attempt reconnection
-		 if (mDevice == NULL) {
+		// if (mDevice == NULL) {
 			//if (ConnectDevice()) {
-			if (connect()) {
+			//if (connect()) {
+			    BOOST_LOG_TRIVIAL(info) << "--> 2x";
 				// Device is connected, open the stream
 				if (OpenStream()) {
+				    BOOST_LOG_TRIVIAL(info) << "--> 3";
 					// Device is connected, stream is opened: start acquisition
 					if (!StartAcquisition()) {
+					    BOOST_LOG_TRIVIAL(info) << "--> 234"; 
 						TearDown(false);
 					}
 				} else {
-					TearDown(false);
-				}
+			      BOOST_LOG_TRIVIAL(info) << "-->erg"; 
+			       TearDown(false);
+			//}
+				BOOST_LOG_TRIVIAL(info) << "--> 23ffdf"; 
 			}
-		}
-		 
+		//}
+			BOOST_LOG_TRIVIAL(info) << "--> erg"; 
 		// If still no device, no need to continue the loop
+			
+		first = false;	
+		}
+			
+			
 		if (mDevice == NULL) {
 			continue;
 		}
-
+		// BOOST_LOG_TRIVIAL(info) << "-->grg"; 
 		if ((mStream != NULL) && mStream->IsOpen() && (mPipeline != NULL)
 				&& mPipeline->IsStarted()) {
 			// Retrieve next buffer
@@ -805,7 +818,7 @@ void EbusCameraInterface::TearDown(bool aStopAcquisition) {
 	}
 
 	CloseStream();
-	DisconnectDevice();
+	//DisconnectDevice();
 }
 
 
