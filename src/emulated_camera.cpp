@@ -86,7 +86,10 @@ void
 i3ds::EmulatedCamera::do_start()
 {
   BOOST_LOG_TRIVIAL(info) << "do_start()";
-  sampler_.Start(rate());
+  //sampler_.Start(rate());
+
+  ebusCameraInterface->do_start();
+
 }
 
 void
@@ -181,6 +184,7 @@ i3ds::EmulatedCamera::handle_pattern(PatternService::Data& command)
 bool
 i3ds::EmulatedCamera::send_sample(unsigned long timestamp_us)
 {
+  return true;
   BOOST_LOG_TRIVIAL(info) << "send_sample()";
   BOOST_LOG_TRIVIAL(info) << "Send: " << auto_exposure_enabled_ << timestamp_us;
 

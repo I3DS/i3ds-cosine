@@ -15,6 +15,28 @@
 
 
 #include <PvDevice.h>
+#include <PvStream.h>
+#include <PvStreamGEV.h>
+#include <PvStreamU3V.h>
+#include <PvDeviceInfoGEV.h>
+#include <PvDeviceInfoU3V.h>
+
+
+
+
+//#include <PvSampleUtils.h>
+#include <PvDevice.h>
+#include <PvPipeline.h>
+#include <PvBuffer.h>
+#include <PvStream.h>
+#include <PvStreamGEV.h>
+#include <PvStreamU3V.h>
+#include <PvDeviceInfoGEV.h>
+#include <PvDeviceInfoU3V.h>
+
+
+
+
 
 
 class EbusCameraInterface: protected PvDeviceEventSink {
@@ -50,7 +72,7 @@ class EbusCameraInterface: protected PvDeviceEventSink {
     void setRegionEnabled(bool regionEnabled);
     void setRegion(PlanarRegion region);
 
-
+    void do_start();
 
     
     
@@ -67,6 +89,25 @@ class EbusCameraInterface: protected PvDeviceEventSink {
     PvString mConnectionID;
     PvDevice* mDevice;
     PvGenParameterArray *lParameters;
+
+
+
+    //--streaming part
+    bool OpenStream();
+    void CloseStream();
+    bool StartAcquisition();
+    bool StopAcquisition();
+    void ApplicationLoop();
+    void DisconnectDevice();
+    void TearDown(bool aStopAcquisition);
+
+
+    PvStream* mStream;
+    PvPipeline* mPipeline;
+
+
+
+
 };
 
 #endif

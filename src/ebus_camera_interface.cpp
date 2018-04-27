@@ -28,12 +28,15 @@
 
 
 
+#include <PvSampleUtils.h>
+
+
 
 
 namespace po = boost::program_options;
 namespace logging = boost::log;
 
-
+int gStop;
 
 EbusCameraInterface::EbusCameraInterface() {
   BOOST_LOG_TRIVIAL(info) << "EbusCameraInterface constructor";
@@ -497,27 +500,31 @@ void EbusCameraInterface::setRegion(PlanarRegion region){
 }
 
 
+void EbusCameraInterface::do_start(){
+  PV_SAMPLE_INIT();
+  ApplicationLoop();
+  TearDown(true);
+}
 
 
 
 
 
-
--/////-------------------------------- Streaming part
+/////-------------------------------- Streaming part
 
 
 //
 // Opens stream, pipeline, allocates buffers
 //
 
-bool EBusInterface::OpenStream() {
-	std::cout << "--> OpenStream" << std::endl;
+bool EbusCameraInterface::OpenStream() {
+      BOOST_LOG_TRIVIAL(info) << "--> OpenStream";
 
 	// Creates and open the stream object based on the selected device.
 	PvResult lResult = PvResult::Code::INVALID_PARAMETER;
 	mStream = PvStream::CreateAndOpen(mConnectionID, &lResult);
 	if (!lResult.IsOK()) {
-		std::cout << "Unable to open the stream" << std::endl;
+	    BOOST_LOG_TRIVIAL(info) << "Unable to open the stream";
 		return false;
 	}
 
@@ -533,7 +540,7 @@ bool EBusInterface::OpenStream() {
 	// The pipeline needs to be "armed", or started before  we instruct the device to send us images
 	lResult = mPipeline->Start();
 	if (!lResult.IsOK()) {
-		std::cout << "Unable to start pipeline" << std::endl;
+	    BOOST_LOG_TRIVIAL(info) << "Unable to start pipeline";
 		return false;
 	}
 
@@ -554,13 +561,13 @@ bool EBusInterface::OpenStream() {
 // Closes the stream, pipeline
 //
 
-void EBusInterface::CloseStream() {
-	std::cout << "--> CloseStream" << std::endl;
+void EbusCameraInterface::CloseStream() {
+  BOOST_LOG_TRIVIAL(info) << "--> CloseStream";
 
 	if (mPipeline != NULL) {
 		if (mPipeline->IsStarted()) {
 			if (!mPipeline->Stop().IsOK()) {
-				std::cout << "Unable to stop the pipeline." << std::endl;
+			    BOOST_LOG_TRIVIAL(info) << "Unable to stop the pipeline.";
 			}
 		}
 
@@ -571,7 +578,7 @@ void EBusInterface::CloseStream() {
 	if (mStream != NULL) {
 		if (mStream->IsOpen()) {
 			if (!mStream->Close().IsOK()) {
-				std::cout << "Unable to stop the stream." << std::endl;
+			    BOOST_LOG_TRIVIAL(info) << "Unable to stop the stream.";
 			}
 		}
 
@@ -584,15 +591,14 @@ void EBusInterface::CloseStream() {
 // Starts image acquisition
 //
 
-bool EBusInterface::StartAcquisition() {
-	std::cout << "--> StartAcquisition" << std::endl;
+bool EbusCameraInterface::StartAcquisition() {
+  BOOST_LOG_TRIVIAL(info) << "--> StartAcquisition";
 
 	// Flush packet queue to make sure there is no left over from previous disconnect event
 	PvStreamGEV* lStreamGEV = dynamic_cast<PvStreamGEV*>(mStream);
 	if (lStreamGEV != NULL) {
 		lStreamGEV->FlushPacketQueue();
 	}
-
 	// Set streaming destination (only GigE Vision devces)
 	PvDeviceGEV* lDeviceGEV = dynamic_cast<PvDeviceGEV*>(mDevice);
 	if (lDeviceGEV != NULL) {
@@ -603,7 +609,9 @@ bool EBusInterface::StartAcquisition() {
 		PvResult lResult = lDeviceGEV->SetStreamDestination(
 				lStreamGEV->GetLocalIPAddress(), lStreamGEV->GetLocalPort());
 		if (!lResult.IsOK()) {
-			std::cout << "Setting stream destination failed" << std::endl;
+			BOOST_LOG_TRIVIAL(info) << "Setting stream destination failed" 
+			    << lStreamGEV->GetLocalIPAddress().GetAscii() << ":" << 
+			    lStreamGEV->GetLocalPort();
 			return false;
 		}
 	}
@@ -615,7 +623,7 @@ bool EBusInterface::StartAcquisition() {
 	PvResult lResult = mDevice->GetParameters()->ExecuteCommand(
 			"AcquisitionStart");
 	if (!lResult.IsOK()) {
-		std::cout << "Unable to start acquisition" << std::endl;
+		BOOST_LOG_TRIVIAL(info) << "Unable to start acquisition";
 		return false;
 	}
 
@@ -626,8 +634,8 @@ bool EBusInterface::StartAcquisition() {
 // Stops acquisition
 //
 
-bool EBusInterface::StopAcquisition() {
-	std::cout << "--> StopAcquisition" << std::endl;
+bool EbusCameraInterface::StopAcquisition() {
+  BOOST_LOG_TRIVIAL(info) << "--> StopAcquisition";
 
 	// Tell the device to stop sending images.
 	mDevice->GetParameters()->ExecuteCommand("AcquisitionStop");
@@ -648,9 +656,12 @@ bool EBusInterface::StopAcquisition() {
 // Acquisition loop
 //
 
-void EBusInterface::ApplicationLoop() {
-	std::cout << "--> ApplicationLoop" << std::endl;
-
+void EbusCameraInterface::ApplicationLoop() {
+  BOOST_LOG_TRIVIAL(info) << "--> ApplicationLoop";
+  DisconnectDevice();  
+  BOOST_LOG_TRIVIAL(info) << "--> ApplicationLoop2";
+  
+  
 	char lDoodle[] = "|\\-|-/";
 	int lDoodleIndex = 0;
 	bool lFirstTimeout = true;
@@ -660,16 +671,18 @@ void EBusInterface::ApplicationLoop() {
 	double lBandwidthVal = 0.0;
 
 	// Acquire images until the user instructs us to stop.
-	while (!PvKbHit()) {
-		// If connection flag is up, teardown device/stream
+	while (! PvKbHit()) {
+		
+	    //If connection flag is up, teardown device/stream
 		if (mConnectionLost && (mDevice != NULL)) {
 			// Device lost: no need to stop acquisition
 			TearDown(false);
 		}
 
 		// If the device is not connected, attempt reconnection
-		if (mDevice == NULL) {
-			if (ConnectDevice()) {
+		 if (mDevice == NULL) {
+			//if (ConnectDevice()) {
+			if (connect()) {
 				// Device is connected, open the stream
 				if (OpenStream()) {
 					// Device is connected, stream is opened: start acquisition
@@ -681,7 +694,7 @@ void EBusInterface::ApplicationLoop() {
 				}
 			}
 		}
-
+		 
 		// If still no device, no need to continue the loop
 		if (mDevice == NULL) {
 			continue;
@@ -760,8 +773,8 @@ void EBusInterface::ApplicationLoop() {
 // \brief Disconnects the device
 //
 
-void EBusInterface::DisconnectDevice() {
-	std::cout << "--> DisconnectDevice" << std::endl;
+void EbusCameraInterface::DisconnectDevice() {
+  BOOST_LOG_TRIVIAL(info) << "--> DisconnectDevice";
 
 	if (mDevice != NULL) {
 		if (mDevice->IsConnected()) {
@@ -778,8 +791,8 @@ void EBusInterface::DisconnectDevice() {
 // Tear down: closes, disconnects, etc.
 //
 
-void EBusInterface::TearDown(bool aStopAcquisition) {
-	std::cout << "--> TearDown" << std::endl;
+void EbusCameraInterface::TearDown(bool aStopAcquisition) {
+  BOOST_LOG_TRIVIAL(info)  << "--> TearDown";
 
 	if (aStopAcquisition) {
 		StopAcquisition();
@@ -788,12 +801,6 @@ void EBusInterface::TearDown(bool aStopAcquisition) {
 	CloseStream();
 	DisconnectDevice();
 }
-
-//
-// PvDeviceEventSink callback
-//
-// Notification that the device just got disconnected.
-//
 
 
 
