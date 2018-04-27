@@ -40,7 +40,8 @@ set (APPS
   cosine-tir
   i3ds_suite_emulator
   )
-
+  
+add_definitions(-D_UNIX_)
 
 
 include_directories ("include/")
