@@ -40,10 +40,10 @@
 
 
 class EbusCameraInterface: protected PvDeviceEventSink {
-  
+
   public:
     EbusCameraInterface();
-    
+
     bool connect();
     void collectParameters();
     int64_t getParameter(PvString whichParameter);
@@ -56,36 +56,46 @@ class EbusCameraInterface: protected PvDeviceEventSink {
 
     bool setIntParameter(PvString whichParameter, int64_t value);
 
-    int64_t getExposure();
-    int64_t getGain();
-    PlanarRegion getRegion();
-    int64_t getMaxGain();
-    int64_t getMaxExposure();
+    int64_t getShutterTime();
+    void setShutterTime(int64_t value);
+
     bool getAutoExposureEnabled();
+    void setAutoExposureEnabled(bool value);
+
+
+    int64_t getGain();
+    void setGain(int64_t value);
+
+    void setRegion(PlanarRegion region);
+    PlanarRegion getRegion();
+
+    void setRegionEnabled(bool regionEnabled);
     bool getRegionEnabled();
 
+
     void setTriggerInterval(int64_t);
-    bool checkTriggerInterval(int64_t);
-    void setAutoExposure(int64_t value);
-    void setAutoExposureEnabled(bool value);
-    void setGain(int64_t value);
-    void setRegionEnabled(bool regionEnabled);
-    void setRegion(PlanarRegion region);
+     bool checkTriggerInterval(int64_t);
+
+
+    int64_t getMaxShutterTime();
+    void setMaxShutterTime(int64_t);
+
+
 
     void do_start();
 
-    
-    
-  
+
+
+
   protected:
-    
+
     // Inherited from PvDeviceEventSink.
     void OnLinkDisconnected(PvDevice* aDevice);
-    
+
   private:
-  
+
     bool mConnectionLost;
-    
+
     PvString mConnectionID;
     PvDevice* mDevice;
     PvGenParameterArray *lParameters;

@@ -78,7 +78,7 @@ i3ds::EmulatedCamera::do_activate()
 {
   BOOST_LOG_TRIVIAL(info) << "do_activate()";
   ebusCameraInterface->connect();
-  exposure_ = ebusCameraInterface->getExposure();
+  exposure_ = ebusCameraInterface->getShutterTime();
   BOOST_LOG_TRIVIAL(info) << "Exposure: " << exposure_;
 }
 
@@ -120,7 +120,7 @@ i3ds::EmulatedCamera::handle_exposure(ExposureService::Data& command)
   BOOST_LOG_TRIVIAL(info) << "handle_exposure()";
   auto_exposure_enabled_ = false;
   exposure_ = command.request.exposure;
-  ebusCameraInterface->setAutoExposure(command.request.exposure);
+  ebusCameraInterface->setShutterTime(command.request.exposure);
   gain_ = command.request.gain;
   ebusCameraInterface->setGain(command.request.gain);
 }
@@ -137,8 +137,7 @@ i3ds::EmulatedCamera::handle_auto_exposure(AutoExposureService::Data& command)
     {
       //max_exposure_ = command.request.max_exposure;
       //max_gain_ = command.request.max_gain;
-      ebusCameraInterface->setAutoExposure(command.request.max_exposure);
-      ebusCameraInterface->setGain(command.request.max_gain);
+      ebusCameraInterface->setMaxShutterTime(command.request.max_exposure);
 
 
     }
@@ -202,11 +201,11 @@ i3ds::EmulatedCamera::handle_configuration(ConfigurationService::Data& config) c
 {
   BOOST_LOG_TRIVIAL(info) << "handle_configuration()";
 
-  config.response.exposure = ebusCameraInterface->getExposure();
+  config.response.exposure = ebusCameraInterface->getShutterTime();
   config.response.gain = ebusCameraInterface->getGain();
   config.response.auto_exposure_enabled = ebusCameraInterface->getAutoExposureEnabled();
-  config.response.max_exposure = ebusCameraInterface->getMaxExposure();
-  config.response.max_gain = ebusCameraInterface->getMaxGain();
+  config.response.max_exposure = ebusCameraInterface->getMaxShutterTime();
+  config.response.max_gain = ebusCameraInterface->getMaxShutterTime();
   config.response.region_enabled = ebusCameraInterface->getRegionEnabled();
   config.response.region = ebusCameraInterface->getRegion();
   config.response.flash_enabled = flash_enabled();

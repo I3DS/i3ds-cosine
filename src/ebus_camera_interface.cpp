@@ -243,6 +243,7 @@ EbusCameraInterface::checkIfEnumOptionIsOK (PvString whichParameter,
   for (int i = 0; i < aCount; i++)
     {
 
+
       const PvGenEnumEntry *aEntry;
 
       static_cast<PvGenEnum *> (lGenParameter)->GetEntryByValue (i, &aEntry);
@@ -290,6 +291,7 @@ EbusCameraInterface::setEnum (PvString whichParameter, PvString value)
 	  BOOST_LOG_TRIVIAL (info) << "Parameter value: " << value.GetAscii ()
 	      << " set for parameter: " << whichParameter.GetAscii ();
 	  return;
+
 	}
 
     }
@@ -410,18 +412,18 @@ EbusCameraInterface::getRegionEnabled ()
 }
 
 int64_t
-EbusCameraInterface::getExposure ()
+EbusCameraInterface::getShutterTime ()
 {
   BOOST_LOG_TRIVIAL (info) << "Fetching parameter: exposure";
-  return getParameter ("GainValueLeft");
+  return getParameter ("ShutterTimeValue");
 }
 
 int64_t
-EbusCameraInterface::getMaxExposure ()
+EbusCameraInterface::getMaxShutterTime ()
 {
 
-  BOOST_LOG_TRIVIAL (info) << "Fetching max of parameter: exposure";
-  return getMaxParameter ("GainValueLeft");
+  BOOST_LOG_TRIVIAL (info) << "Fetching max of parameter: MaxShutterTime";
+  return getMaxParameter ("MaxShutterTimeValue");
 }
 
 int64_t
@@ -430,7 +432,7 @@ EbusCameraInterface::getGain ()
   BOOST_LOG_TRIVIAL (info) << "Fetching parameter: GainValue";
   return getParameter ("GainValue");
 }
-
+/*
 int64_t
 EbusCameraInterface::getMaxGain ()
 {
@@ -438,6 +440,8 @@ EbusCameraInterface::getMaxGain ()
   BOOST_LOG_TRIVIAL (info) << "Fetching max of parameter: GainValue";
   return getMaxParameter ("GainValue");
 }
+*/
+
 
 PlanarRegion
 EbusCameraInterface::getRegion ()
@@ -474,11 +478,20 @@ EbusCameraInterface::checkTriggerInterval (int64_t value)
 }
 
 void
-EbusCameraInterface::setAutoExposure (int64_t value)
+EbusCameraInterface::setShutterTime (int64_t value)
 {
-  BOOST_LOG_TRIVIAL (info) << "Set Exposure (ShutterTimeValue): " << value;
+  BOOST_LOG_TRIVIAL (info) << "SetShutterTime (ShutterTimeValue): " << value;
   setIntParameter ("ShutterTimeValue", value);
 }
+
+
+void
+EbusCameraInterface::setMaxShutterTime (int64_t value)
+{
+  BOOST_LOG_TRIVIAL (info) << "set MaxShutterTime (MaxShutterTimeValue): " << value;
+  setIntParameter ("MaxShutterTimeValue", value);
+}
+
 
 void
 EbusCameraInterface::setGain (int64_t value)
@@ -538,11 +551,11 @@ EbusCameraInterface::setRegion (PlanarRegion region)
    setregion.offset_x = offset_x;
    if(region.)
    min =
-   
-   
+
+
    region.offset_y = offset_y;
    region.size_x = size_x;
-   region.size_y= size_y;  
+   region.size_y= size_y;
 
    return region;
    */
@@ -581,7 +594,7 @@ EbusCameraInterface::OpenStream ()
       BOOST_LOG_TRIVIAL (info) << "Unable to open the stream";
       return false;
     }
-  
+
   mPipeline = new PvPipeline (mStream);
 
   // Reading payload size from device
@@ -671,7 +684,7 @@ EbusCameraInterface::StartAcquisition ()
     {
       // If using a GigE Vision, it is same to assume the stream object is GigE Vision as well
       PvStreamGEV* lStreamGEV = static_cast<PvStreamGEV*> (mStream);
-     
+
       // Have to set the Device IP destination to the Stream
       PvResult lResult = lDeviceGEV->SetStreamDestination (
       lStreamGEV->GetLocalIPAddress (), lStreamGEV->GetLocalPort ());
@@ -776,7 +789,7 @@ EbusCameraInterface::ApplicationLoop ()
 	  first = false;
 	}
 
-      // If still no device, no need to continue the loop	
+      // If still no device, no need to continue the loop
       if (mDevice == NULL)
 	{
 	  continue;
