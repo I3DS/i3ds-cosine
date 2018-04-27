@@ -502,6 +502,12 @@ void EbusCameraInterface::setRegion(PlanarRegion region){
 
 void EbusCameraInterface::do_start(){
   PV_SAMPLE_INIT();
+
+  // Set some parameters to be able to stream continuous
+  setEnum("AcquisitionMode", "Continuous");
+  setEnum("TriggerMode", "Interval");
+  setIntParameter("TriggerInterval", 2);
+
   ApplicationLoop();
   TearDown(true);
 }
