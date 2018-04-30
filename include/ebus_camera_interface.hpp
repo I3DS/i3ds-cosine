@@ -13,6 +13,8 @@
 
 #include "i3ds/sensors/camera.hpp"
 
+#include <thread>
+
 
 #include <PvDevice.h>
 #include <PvStream.h>
@@ -83,6 +85,8 @@ class EbusCameraInterface: protected PvDeviceEventSink {
 
 
     void do_start();
+    void do_stop();
+
 
 
 
@@ -107,13 +111,18 @@ class EbusCameraInterface: protected PvDeviceEventSink {
     void CloseStream();
     bool StartAcquisition();
     bool StopAcquisition();
-    void ApplicationLoop();
+    void StartSamplingLoop();
     void DisconnectDevice();
     void TearDown(bool aStopAcquisition);
 
 
     PvStream* mStream;
     PvPipeline* mPipeline;
+
+
+
+    bool stopSamplingLoop;
+    std::thread threadSamplingLoop;
 
 
 

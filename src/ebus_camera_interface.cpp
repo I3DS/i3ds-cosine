@@ -13,6 +13,7 @@
 #include "../include/ebus_camera_interface.hpp"
 
 #include <boost/program_options.hpp>
+#include <thread>
 
 #include "i3ds/core/communication.hpp"
 #include "i3ds/emulators/emulated_camera.hpp"
@@ -24,6 +25,7 @@
 #include <boost/log/expressions.hpp>
 
 #include <PvSampleUtils.h>
+
 
 namespace po = boost::program_options;
 namespace logging = boost::log;
@@ -561,18 +563,22 @@ EbusCameraInterface::setRegion (PlanarRegion region)
    */
 }
 
+
+
 void
 EbusCameraInterface::do_start ()
 {
   PV_SAMPLE_INIT ();
-
+  BOOST_LOG_TRIVIAL (info) << "--> EbusCameraInterface::do_start";
   // Set some parameters to be able to stream continuous
   setEnum ("AcquisitionMode", "Continuous");
   setEnum ("TriggerMode", "Interval");
   setIntParameter ("TriggerInterval", 2);
 
-  ApplicationLoop ();
-  TearDown (true);
+  stopSamplingLoop = false;
+  threadSamplingLoop = std::thread(&EbusCameraInterface::StartSamplingLoop, this);
+
+ // TearDown (true);
 }
 
 /////-------------------------------- Streaming part
@@ -736,14 +742,27 @@ EbusCameraInterface::StopAcquisition (){
 return true;
 }
 
+
+
+void EbusCameraInterface::do_stop()
+{
+  BOOST_LOG_TRIVIAL (info) << "--> EbusCameraInterface::do_stop: ";
+  stopSamplingLoop = true;
+  if(threadSamplingLoop.joinable()) {
+      threadSamplingLoop.join();
+  }
+  TearDown (true);
+}
+
+
 //
 // Acquisition loop
 //
 
 void
-EbusCameraInterface::ApplicationLoop ()
+EbusCameraInterface::StartSamplingLoop ()
 {
-  BOOST_LOG_TRIVIAL (info) << "--> ApplicationLoop";
+  BOOST_LOG_TRIVIAL (info) << "--> StartSamplingLoop";
 
   bool first = true;
 
@@ -756,7 +775,7 @@ EbusCameraInterface::ApplicationLoop ()
   double lBandwidthVal = 0.0;
 
   // Acquire images until the user instructs us to stop.
-  while (!PvKbHit ())
+  while (!stopSamplingLoop)
     {
 
       //If connection flag is up, teardown device/stream
@@ -800,7 +819,7 @@ EbusCameraInterface::ApplicationLoop ()
 	  // Retrieve next buffer
 	  PvBuffer *lBuffer = NULL;
 	  PvResult lOperationResult;
-	  PvResult lResult = mPipeline->RetrieveNextBuffer (&lBuffer, 1000,
+	  PvResult lResult = mPipeline->RetrieveNextBuffer (&lBuffer, 10000,
 							    &lOperationResult);
 
 	  if (lResult.IsOK ())
@@ -812,12 +831,9 @@ EbusCameraInterface::ApplicationLoop ()
 		  // -----------------------------------------------------------------------------------------
 		  // ...
 
-		  mStream->GetParameters ()->GetIntegerValue ("BlockCount",
-							      lImageCountVal);
-		  mStream->GetParameters ()->GetFloatValue ("AcquisitionRate",
-							    lFrameRateVal);
-		  mStream->GetParameters ()->GetFloatValue ("Bandwidth",
-							    lBandwidthVal);
+		  mStream->GetParameters ()->GetIntegerValue ("BlockCount", lImageCountVal);
+		  mStream->GetParameters ()->GetFloatValue ("AcquisitionRate", lFrameRateVal);
+		  mStream->GetParameters ()->GetFloatValue ("Bandwidth", lBandwidthVal);
 
 		  // If the buffer contains an image, display width and height.
 		  uint32_t lWidth = 0, lHeight = 0;
@@ -866,8 +882,7 @@ EbusCameraInterface::ApplicationLoop ()
 	}
     }
 
-  PvGetChar (); // Flush key buffer for next stop.
-  std::cout << "" << std::endl;
+  BOOST_LOG_TRIVIAL (info) << "--> Sampling Loop Exiting";
 }
 
 //

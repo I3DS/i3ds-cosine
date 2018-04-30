@@ -96,6 +96,10 @@ void
 i3ds::EmulatedCamera::do_stop()
 {
   BOOST_LOG_TRIVIAL(info) << "do_stop()";
+
+  ebusCameraInterface->do_stop();
+
+
   sampler_.Stop();
 }
 
