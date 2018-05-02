@@ -39,7 +39,8 @@ i3ds::EmulatedCamera::EmulatedCamera(Context::Ptr context, NodeID node, int resx
     publisher_(context, node)
 {
 
-  ebusCameraInterface = new EbusCameraInterface();
+  ebusCameraInterface = new EbusCameraInterface("10.0.1.111",
+						std::bind(&i3ds::EmulatedCamera::send_sample, this, std::placeholders::_1));
 
   exposure_ = 0;
   gain_ = 0.0;
