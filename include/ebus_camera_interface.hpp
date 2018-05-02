@@ -38,25 +38,33 @@
 
 
 
-
+  // Does sampling operation, returns true if more samples are requested.
+  typedef std::function<bool(unsigned long timestamp_us)> Operation;
 
 
 class EbusCameraInterface: protected PvDeviceEventSink {
 
   public:
-    EbusCameraInterface();
+    EbusCameraInterface(const char *connectionString, Operation operation);
 
     bool connect();
     void collectParameters();
+
     int64_t getParameter(PvString whichParameter);
     int64_t getMaxParameter(PvString whichParameter);
     int64_t getMinParameter(PvString whichParameter);
+    bool setIntParameter(PvString whichParameter, int64_t value);
+
+
     bool getBooleanParameter(PvString whichParameter);
+
+
+
     char * getEnum(PvString whichParameter);
     void setEnum(PvString whichParameter, PvString value);
     bool checkIfEnumOptionIsOK(PvString whichParameter, PvString value);
 
-    bool setIntParameter(PvString whichParameter, int64_t value);
+
 
     int64_t getShutterTime();
     void setShutterTime(int64_t value);
@@ -76,7 +84,7 @@ class EbusCameraInterface: protected PvDeviceEventSink {
 
 
     void setTriggerInterval(int64_t);
-     bool checkTriggerInterval(int64_t);
+    bool checkTriggerInterval(int64_t);
 
 
     int64_t getMaxShutterTime();
@@ -123,6 +131,9 @@ class EbusCameraInterface: protected PvDeviceEventSink {
 
     bool stopSamplingLoop;
     std::thread threadSamplingLoop;
+
+    // Sample operation.
+     Operation operation_;
 
 
 
