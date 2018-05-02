@@ -15,6 +15,7 @@
 #include <boost/program_options.hpp>
 #include <thread>
 
+#include "i3ds/core/exception.hpp"
 #include "i3ds/core/communication.hpp"
 #include "i3ds/emulators/emulated_camera.hpp"
 
@@ -26,15 +27,20 @@
 
 #include <PvSampleUtils.h>
 
+#include <string>
+
 
 namespace po = boost::program_options;
 namespace logging = boost::log;
 
 int gStop;
 
-EbusCameraInterface::EbusCameraInterface ()
+EbusCameraInterface::EbusCameraInterface(const char *connectionString, Operation operation)
+: operation_(operation)
 {
   BOOST_LOG_TRIVIAL (info) << "EbusCameraInterface constructor";
+  mConnectionID = PvString(connectionString);
+  BOOST_LOG_TRIVIAL (info) << "Connection String: "<< mConnectionID.GetAscii ();
 
 }
 
@@ -104,6 +110,9 @@ EbusCameraInterface::getParameter (PvString whichParameter)
     {
       BOOST_LOG_TRIVIAL (info) << "Unable to get the parameter: "
 	  << whichParameter.GetAscii ();
+      ostringstream errorDescription;
+      errorDescription << "getParameter: Unable to get the parameter: " << whichParameter.GetAscii ();
+      throw i3ds::CommandError(error_value, errorDescription.str());
     }
 
   // Read current width value.
@@ -111,6 +120,9 @@ EbusCameraInterface::getParameter (PvString whichParameter)
   if (!(lIntParameter->GetValue (lParameterValue).IsOK ()))
     {
       BOOST_LOG_TRIVIAL (info) << "Error retrieving parameter from device";
+      ostringstream errorDescription;
+      errorDescription << "getParameter: Error retrieving parameter from device" << whichParameter.GetAscii ();
+      throw i3ds::CommandError(error_value, errorDescription.str());
       return 0;
     }
   else
@@ -195,6 +207,9 @@ EbusCameraInterface::getEnum (PvString whichParameter)
   if (!lGenParameter->IsAvailable ())
     {
       BOOST_LOG_TRIVIAL (info) << "{Not Available}";
+      ostringstream errorDescription;
+      errorDescription << "getEnum: Parameter Not Available: " << whichParameter.GetAscii ();
+      throw i3ds::CommandError(error_value, errorDescription.str());
       return nullptr;
     }
 
@@ -202,6 +217,9 @@ EbusCameraInterface::getEnum (PvString whichParameter)
   if (!lGenParameter->IsReadable ())
     {
       BOOST_LOG_TRIVIAL (info) << "{Not readable}";
+      ostringstream errorDescription;
+      errorDescription << "getEnum: Parameter Not Readable: " << whichParameter.GetAscii ();
+      throw i3ds::CommandError(error_value, errorDescription.str());
       return nullptr;
     }
 
@@ -222,6 +240,9 @@ EbusCameraInterface::getEnum (PvString whichParameter)
   else
     {
       BOOST_LOG_TRIVIAL (info) << "Not a enum ";
+      ostringstream errorDescription;
+      errorDescription << "getEnum: Parameter Not a enum: " << whichParameter.GetAscii ();
+      throw i3ds::CommandError(error_value, errorDescription.str());
       return nullptr;
     }
 
@@ -260,6 +281,10 @@ EbusCameraInterface::checkIfEnumOptionIsOK (PvString whichParameter,
 	}
     }
   BOOST_LOG_TRIVIAL (info) << "Option not found.";
+  ostringstream errorDescription;
+  errorDescription << "checkEnum: Option: "<< value.GetAscii() << " does not exists for parameter: "
+      << whichParameter.GetAscii ();
+  throw i3ds::CommandError(error_value, errorDescription.str());
   return false;
 
 }
@@ -279,19 +304,25 @@ EbusCameraInterface::setEnum (PvString whichParameter, PvString value)
 
       if (lEnumParameter == NULL)
 	{
-	  BOOST_LOG_TRIVIAL (info) << "Unable to get the parameter: "
-	      << whichParameter.GetAscii ();
+	  BOOST_LOG_TRIVIAL (info) << "Unable to get the parameter: " << whichParameter.GetAscii ();
+	  ostringstream errorDescription;
+	  errorDescription << "setEnum: Unable to get parameter: " << whichParameter.GetAscii ();
+	  throw i3ds::CommandError(error_value, errorDescription.str());
 	}
 
       if (!(lEnumParameter->SetValue (value).IsOK ()))
 	{
 	  BOOST_LOG_TRIVIAL (info) << "Error setting parameter for device";
+	  ostringstream errorDescription;
+	  errorDescription << "setEnum: Error setting value: "<< value.GetAscii() <<
+	      " for parameter: " << whichParameter.GetAscii();
+	  throw i3ds::CommandError(error_value, errorDescription.str());
 	  return;
 	}
       else
 	{
-	  BOOST_LOG_TRIVIAL (info) << "Parameter value: " << value.GetAscii ()
-	      << " set for parameter: " << whichParameter.GetAscii ();
+	  BOOST_LOG_TRIVIAL (info) << "Parameter value: " << value.GetAscii()
+	      << " set for parameter: " << whichParameter.GetAscii();
 	  return;
 
 	}
@@ -300,6 +331,10 @@ EbusCameraInterface::setEnum (PvString whichParameter, PvString value)
   else
     {
       BOOST_LOG_TRIVIAL (info) << "Illegal parameter value";
+      ostringstream errorDescription;
+      errorDescription << "setEnum: Illegal parameter value: "<< value.GetAscii() <<
+	  " for parameter: " << whichParameter.GetAscii();
+      throw i3ds::CommandError(error_value, errorDescription.str());
     }
 }
 
@@ -340,6 +375,10 @@ EbusCameraInterface::setIntParameter (PvString whichParameter, int64_t value)
 	  BOOST_LOG_TRIVIAL (info)
 	      << "SetParameter: Unable to get the parameter: "
 	      << whichParameter.GetAscii ();
+	  ostringstream errorDescription;
+	  errorDescription << "setIntParameter Option: SetParameter: Unable to get the parameter: "
+	      << whichParameter.GetAscii ();
+	  throw i3ds::CommandError(error_value, errorDescription.str());
 	}
 
       int64_t max = getMaxParameter (whichParameter);
@@ -348,6 +387,14 @@ EbusCameraInterface::setIntParameter (PvString whichParameter, int64_t value)
 	  BOOST_LOG_TRIVIAL (info) << "Setting value Error: Parameter: "
 	      << whichParameter.GetAscii () << " value to big " << value << "> "
 	      << max;
+
+	  ostringstream errorDescription;
+	  errorDescription << "setIntParameter: "<< whichParameter.GetAscii() << " value to large " <<
+	      value << "(" << max <<")" ;
+	  throw i3ds::CommandError(error_value, errorDescription.str());
+
+
+
 	  BOOST_LOG_TRIVIAL (info) << "Rounding to max";
 	  value = max;
 	};
@@ -357,6 +404,14 @@ EbusCameraInterface::setIntParameter (PvString whichParameter, int64_t value)
 	{
 	  BOOST_LOG_TRIVIAL (info) << "Error: value to small " << value << "<"
 	      << min;
+	  ostringstream errorDescription;
+	  errorDescription << "setIntParameter: "<< whichParameter.GetAscii() << " value to small " <<
+	        value << "(" << min <<")";
+	  throw i3ds::CommandError(error_value, errorDescription.str());
+
+
+
+
 	  BOOST_LOG_TRIVIAL (info) << "Rounding to min";
 	  value = min;
 	};
@@ -367,6 +422,11 @@ EbusCameraInterface::setIntParameter (PvString whichParameter, int64_t value)
 	{
 	  BOOST_LOG_TRIVIAL (info) << "SetValue Error: "
 	      << whichParameter.GetAscii ();
+	  ostringstream errorDescription;
+	  errorDescription << "setIntParameter: SetValue Error "<< whichParameter.GetAscii() ;
+	  throw i3ds::CommandError(error_value, errorDescription.str());
+
+
 	  return false;
 	}
       else
@@ -598,6 +658,10 @@ EbusCameraInterface::OpenStream ()
   if (!lResult.IsOK ())
     {
       BOOST_LOG_TRIVIAL (info) << "Unable to open the stream";
+      ostringstream errorDescription;
+      errorDescription << "OpenStream: Unable to open the stream";
+      throw i3ds::CommandError(error_value, errorDescription.str());
+
       return false;
     }
 
@@ -614,6 +678,9 @@ EbusCameraInterface::OpenStream ()
   if (!lResult.IsOK ())
     {
       BOOST_LOG_TRIVIAL (info) << "Unable to start pipeline";
+      ostringstream errorDescription;
+      errorDescription << "OpenStream: Unable to start pipeline";
+      throw i3ds::CommandError(error_value, errorDescription.str());
       return false;
     }
 
@@ -647,6 +714,10 @@ EbusCameraInterface::CloseStream ()
 	  if (!mPipeline->Stop ().IsOK ())
 	    {
 	      BOOST_LOG_TRIVIAL (info) << "Unable to stop the pipeline.";
+	      ostringstream errorDescription;
+	      errorDescription << "CloseStream: Unable to stop the pipeline.";
+	      throw i3ds::CommandError(error_value, errorDescription.str());
+
 	    }
 	}
 
@@ -661,6 +732,9 @@ EbusCameraInterface::CloseStream ()
 	  if (!mStream->Close ().IsOK ())
 	    {
 	      BOOST_LOG_TRIVIAL (info) << "Unable to stop the stream.";
+	      ostringstream errorDescription;
+	      errorDescription << "CloseStream: Unable to stop the stream.";
+	      throw i3ds::CommandError(error_value, errorDescription.str());
 	    }
 	}
 
@@ -699,6 +773,13 @@ EbusCameraInterface::StartAcquisition ()
 	  BOOST_LOG_TRIVIAL (info) << "Setting stream destination failed"
 	  << lStreamGEV->GetLocalIPAddress ().GetAscii () << ":"
 	  << lStreamGEV->GetLocalPort ();
+	  ostringstream errorDescription;
+	  errorDescription << "StartAcquisition: Setting stream destination failed"
+	  		  << lStreamGEV->GetLocalIPAddress ().GetAscii () << ":"
+	  		  << lStreamGEV->GetLocalPort ();
+	  throw i3ds::CommandError(error_value, errorDescription.str());
+
+
 	  return false;
 	}
     }
@@ -712,6 +793,9 @@ EbusCameraInterface::StartAcquisition ()
   if (!lResult.IsOK ())
   {
     BOOST_LOG_TRIVIAL (info) << "Unable to start acquisition";
+    ostringstream errorDescription;
+    errorDescription << "StreamEnable: Unable to start acquisition";
+    throw i3ds::CommandError(error_value, errorDescription.str());
     return false;
   }
 
