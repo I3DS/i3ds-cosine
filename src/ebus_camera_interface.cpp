@@ -852,7 +852,6 @@ EbusCameraInterface::StartSamplingLoop ()
 
   char lDoodle[] = "|\\-|-/";
   int lDoodleIndex = 0;
-  bool lFirstTimeout = true;
 
   int64_t lImageCountVal = 0;
   double lFrameRateVal = 0.0;
@@ -938,7 +937,6 @@ EbusCameraInterface::StartSamplingLoop ()
 		      << lWidth << " H: " << lHeight << " " << lFrameRateVal
 		      << " FPS " << (lBandwidthVal / 1000000.0) << " Mb/s  \r";
 
-		  lFirstTimeout = true;
 		}
 	      // We have an image - do some processing (...) and VERY IMPORTANT,
 	      // release the buffer back to the pipeline.
@@ -948,11 +946,6 @@ EbusCameraInterface::StartSamplingLoop ()
 	    {
 	      // Timeout
 
-	      if (lFirstTimeout)
-		{
-		  std::cout << "" << std::endl;
-		  lFirstTimeout = false;
-		}
 
 	      std::cout << "Image timeout " << lDoodle[lDoodleIndex] << std::endl;
 	    }
