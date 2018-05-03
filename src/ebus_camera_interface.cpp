@@ -365,14 +365,11 @@ bool
 EbusCameraInterface::setIntParameter (PvString whichParameter, int64_t value)
 {
     {
-      BOOST_LOG_TRIVIAL (info) << "SetParameter: 1 ";
       PvGenParameter *lParameter = lParameters->Get (whichParameter);
-      BOOST_LOG_TRIVIAL (info) << "SetParameter: 2 ";
 
       // Converter generic parameter to width using dynamic cast. If the
       // type is right, the conversion will work otherwise lWidth will be NULL.
       PvGenInteger *lvalueParameter = dynamic_cast<PvGenInteger *> (lParameter);
-      BOOST_LOG_TRIVIAL (info) << "SetParameter: 3";
       if (lvalueParameter == NULL)
 	{
 	  BOOST_LOG_TRIVIAL (info)
