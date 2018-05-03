@@ -9,6 +9,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
+#include <sstream>
 
 
 #include "../include/emulated_camera.hpp"
@@ -134,6 +135,14 @@ void
 i3ds::EmulatedCamera::handle_exposure(ExposureService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "handle_exposure()";
+  if(is_active() == false){
+      BOOST_LOG_TRIVIAL(info) << "handle_exposure()-->Not in active state";
+
+      std::ostringstream errorDescription;
+      errorDescription << "handle_exposure: Not in active state";
+      throw i3ds::CommandError(error_value, errorDescription.str());
+    }
+
   auto_exposure_enabled_ = false;
   shutter_ = command.request.shutter;
   ebusCameraInterface->setShutterTime(shutter_);
@@ -145,6 +154,13 @@ void
 i3ds::EmulatedCamera::handle_auto_exposure(AutoExposureService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "handle_auto_exposure()";
+  if(!(is_active() || is_operational())){
+    BOOST_LOG_TRIVIAL(info) << "handle_auto_exposure()-->Not in active or operational state";
+
+    std::ostringstream errorDescription;
+    errorDescription << "handle_auto_exposure: Not in active or operational state";
+    throw i3ds::CommandError(error_value, errorDescription.str());
+  }
   auto_exposure_enabled_ = command.request.enable;
   BOOST_LOG_TRIVIAL(info) << "handle_auto_exposure: enable: "<< command.request.enable;
   ebusCameraInterface->setAutoExposureEnabled(command.request.enable);
@@ -163,6 +179,14 @@ void
 i3ds::EmulatedCamera::handle_region(RegionService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "handle_region()";
+  if(!(is_active() || is_operational())){
+    BOOST_LOG_TRIVIAL(info) << "handle_region()-->Not in active or operational state";
+
+    std::ostringstream errorDescription;
+    errorDescription << "handle_region: Not in active or operational state";
+    throw i3ds::CommandError(error_value, errorDescription.str());
+  }
+
   region_enabled_ = command.request.enable;
   ebusCameraInterface->setRegionEnabled(command.request.enable);
 
@@ -176,6 +200,14 @@ void
 i3ds::EmulatedCamera::handle_flash(FlashService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "handle_flash()";
+  if(!(is_active() || is_operational())){
+    BOOST_LOG_TRIVIAL(info) << "handle_flash()-->Not in active or operational state";
+
+    std::ostringstream errorDescription;
+    errorDescription << "handle_flash(): Not in active or operational state";
+    throw i3ds::CommandError(error_value, errorDescription.str());
+  }
+
   flash_enabled_ = command.request.enable;
 
   if (command.request.enable)
@@ -188,6 +220,16 @@ void
 i3ds::EmulatedCamera::handle_pattern(PatternService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "do_pattern()";
+  if(!(is_active() || is_operational())){
+     BOOST_LOG_TRIVIAL(info) << "do_pattern()-->Not in active or operational state";
+
+     std::ostringstream errorDescription;
+     errorDescription << "do_pattern(): Not in active or operational state";
+     throw i3ds::CommandError(error_value, errorDescription.str());
+   }
+
+
+
   pattern_enabled_ = command.request.enable;
 
   if (command.request.enable)
