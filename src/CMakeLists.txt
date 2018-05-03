@@ -10,13 +10,12 @@ message(STATUS "PUREGEV_ROOT=${PUREGEV_ROOT}")
 
 set (SRCS
    emulated_camera.cpp
-   periodic_sampler.cpp
+  # periodic_sampler.cpp
    ebus_camera_interface.cpp
   )
 
 set (LIBS
-  i3ds-core
-  i3ds-sensors
+  i3ds
   zmq
 
   PvBase
@@ -37,14 +36,14 @@ set (LIBS
   )
 
 set (APPS
-  cosine-tir
+ # cosine-tir
   i3ds_suite_emulator
   )
   
 add_definitions(-D_UNIX_)
 
 
-include_directories ("include/")
+include_directories ("../include/")
 include_directories ("${CMAKE_CURRENT_BINARY_DIR}/src/core")
 
 include_directories ("${PUREGEV_ROOT}/include") 

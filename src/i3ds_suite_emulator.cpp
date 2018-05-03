@@ -14,8 +14,8 @@
 
 #include <boost/program_options.hpp>
 
-#include "i3ds/core/communication.hpp"
-#include "i3ds/emulators/emulated_camera.hpp"
+#include "i3ds/communication.hpp"
+#include "emulated_camera.hpp"
 
 #define BOOST_LOG_DYN_LINK
 

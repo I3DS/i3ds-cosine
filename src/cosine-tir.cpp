@@ -1,4 +1,4 @@
-#include "i3ds/core/communication.hpp"
+#include "i3ds/communication.hpp"
 
 int main(int argc, char** argv)
 {

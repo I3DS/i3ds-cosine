@@ -11,7 +11,7 @@
 #ifndef __I3DS_EBUS_CAMERA_INTERFACE_HPP
 #define __I3DS_EBUS_CAMERA_INTERFACE_HPP
 
-#include "i3ds/sensors/camera.hpp"
+#include "i3ds/camera_sensor.hpp"
 
 #include <thread>
 
@@ -39,7 +39,7 @@
 
 
   // Does sampling operation, returns true if more samples are requested.
-  typedef std::function<bool(unsigned long timestamp_us)> Operation;
+  typedef std::function<bool(unsigned char *image, unsigned long timestamp_us)> Operation;
 
 
 class EbusCameraInterface: protected PvDeviceEventSink {
@@ -136,7 +136,7 @@ class EbusCameraInterface: protected PvDeviceEventSink {
      Operation operation_;
 
 
-
+    typedef std::chrono::high_resolution_clock clock;
 
 };
 

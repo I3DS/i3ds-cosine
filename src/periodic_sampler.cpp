@@ -10,7 +10,7 @@
 
 #include <chrono>
 
-#include "i3ds/emulators/periodic_sampler.hpp"
+#include "i3ds/periodic_sampler.hpp"
 
 i3ds::Sampler::Sampler(Operation operation)
   : operation_(operation), rate_(0), running_(false)

@@ -15,7 +15,7 @@
 #include <functional>
 #include <chrono>
 
-#include "i3ds/sensors/sensor.hpp"
+#include "i3ds/sensor.hpp"
 
 namespace i3ds
 {
@@ -29,7 +29,7 @@ class Sampler
 public:
 
   // Does sampling operation, returns true if more samples are requested.
-  typedef std::function<bool(unsigned long timestamp_us)> Operation;
+  typedef std::function<bool(unsigned char *image, unsigned long timestamp_us)> Operation;
 
   Sampler(Operation operation);
   virtual ~Sampler();

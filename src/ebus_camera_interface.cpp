@@ -14,10 +14,11 @@
 
 #include <boost/program_options.hpp>
 #include <thread>
+#include <chrono>
 
-#include "i3ds/core/exception.hpp"
-#include "i3ds/core/communication.hpp"
-#include "i3ds/emulators/emulated_camera.hpp"
+#include "i3ds/exception.hpp"
+#include "i3ds/communication.hpp"
+#include "i3ds/emulated_camera.hpp"
 
 #define BOOST_LOG_DYN_LINK
 
@@ -364,12 +365,14 @@ bool
 EbusCameraInterface::setIntParameter (PvString whichParameter, int64_t value)
 {
     {
+      BOOST_LOG_TRIVIAL (info) << "SetParameter: 1 ";
       PvGenParameter *lParameter = lParameters->Get (whichParameter);
+      BOOST_LOG_TRIVIAL (info) << "SetParameter: 2 ";
 
       // Converter generic parameter to width using dynamic cast. If the
       // type is right, the conversion will work otherwise lWidth will be NULL.
       PvGenInteger *lvalueParameter = dynamic_cast<PvGenInteger *> (lParameter);
-
+      BOOST_LOG_TRIVIAL (info) << "SetParameter: 3";
       if (lvalueParameter == NULL)
 	{
 	  BOOST_LOG_TRIVIAL (info)
@@ -385,12 +388,12 @@ EbusCameraInterface::setIntParameter (PvString whichParameter, int64_t value)
       if (value > max)
 	{
 	  BOOST_LOG_TRIVIAL (info) << "Setting value Error: Parameter: "
-	      << whichParameter.GetAscii () << " value to big " << value << "> "
-	      << max;
+	      << whichParameter.GetAscii () << " value to big " << value << " (Max: "
+	      << max <<")";
 
 	  ostringstream errorDescription;
 	  errorDescription << "setIntParameter: "<< whichParameter.GetAscii() << " value to large " <<
-	      value << "(" << max <<")" ;
+	      value << ".(Max: " << max <<")" ;
 	  throw i3ds::CommandError(error_value, errorDescription.str());
 
 
@@ -405,8 +408,8 @@ EbusCameraInterface::setIntParameter (PvString whichParameter, int64_t value)
 	  BOOST_LOG_TRIVIAL (info) << "Error: value to small " << value << "<"
 	      << min;
 	  ostringstream errorDescription;
-	  errorDescription << "setIntParameter: "<< whichParameter.GetAscii() << " value to small " <<
-	        value << "(" << min <<")";
+	  errorDescription << "setIntParameter: "<< whichParameter.GetAscii() << " Value to small " <<
+	        value << ".(Min: " << min <<")";
 	  throw i3ds::CommandError(error_value, errorDescription.str());
 
 
@@ -928,6 +931,12 @@ EbusCameraInterface::StartSamplingLoop ()
 		      // Read width, height.
 		      lWidth = lImage->GetWidth ();
 		      lHeight = lImage->GetHeight ();
+
+		      clock::time_point next = clock::now();
+		     // BOOST_LOG_TRIVIAL (info) << "--> datapointer: " << lImage->GetDataPointer();
+		     // printf("Datapointer %p\n", lImage->GetDataPointer());
+		      operation_(lImage->GetDataPointer(), std::chrono::duration_cast<std::chrono::microseconds>(next.time_since_epoch()).count());
+
 		    }
 
 		  std::cout << fixed << setprecision (1);
@@ -936,6 +945,9 @@ EbusCameraInterface::StartSamplingLoop ()
 		      << setw (16) << lBuffer->GetBlockID () << " W: " << dec
 		      << lWidth << " H: " << lHeight << " " << lFrameRateVal
 		      << " FPS " << (lBandwidthVal / 1000000.0) << " Mb/s  \r";
+
+
+
 
 		}
 	      // We have an image - do some processing (...) and VERY IMPORTANT,
