@@ -11,6 +11,8 @@
 #include <csignal>
 #include <iostream>
 #include <unistd.h>
+#include <string>
+#include <vector>
 
 #include <boost/program_options.hpp>
 
@@ -46,9 +48,19 @@ int main(int argc, char** argv)
 	po::options_description desc("Allowed camera control options");
 
 	  desc.add_options()
-	    ("help", "Produce this message")
+	    ("help,h", "Produce this message")
 	//    ("node", po::value<unsigned int>(&node_id)->required(), "Node ID of camera")
 
+	    ("device,d",
+		po::value <std::vector<std::string>>(),
+		"Which camera to connect to.\n"
+		"May be [camera name | ipadress | mac adress]\n"
+		"Actual name and IP adresses at the moment:\n"
+		"\ti3ds-thermal:  10.0.1.111\n"
+		"\t[no name set]: 10.0.1.115\n"
+		"\ti3ds-highres:  10.0.1.116\n"
+		"\ti3ds-stereo:   10.0.1.117\n"
+	    )
 
 
 	    ("verbose,v", "Print verbose output")
@@ -63,6 +75,14 @@ int main(int argc, char** argv)
 	    {
 	      std::cout << desc << std::endl;
 	      return -1;
+	    }
+
+	  if (vm.count("device"))
+	    {
+	      std::string s;
+	      s = vm["device"].as< std::vector<std::string>>().front();
+	      std::cout << "Using device: "<< s << std::endl;
+	      //return -1;
 	    }
 
 	  if (vm.count("quite"))
