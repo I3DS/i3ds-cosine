@@ -25,11 +25,13 @@
 namespace i3ds
 {
 
+template <class Codec>
 class EmulatedCamera : public Camera
 {
 public:
 
-  typedef Topic<128, CameraMeasurement4MCodec> ImageMeasurement;
+  //typedef Topic<128, CameraMeasurement4MCodec> ImageMeasurement;
+  typedef Topic<128, Codec> ImageMeasurement;
 
   EmulatedCamera(Context::Ptr context, NodeID id, int resx, int resy);
   virtual ~EmulatedCamera();
@@ -87,7 +89,7 @@ private:
  // Sampler sampler_;
 
   Publisher publisher_;
-  CameraMeasurement4M frame_;
+  Codec frame_;
 
   EbusCameraInterface * ebusCameraInterface;
 

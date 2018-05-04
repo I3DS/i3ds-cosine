@@ -31,8 +31,8 @@ namespace logging = boost::log;
 
 
 
-
-i3ds::EmulatedCamera::EmulatedCamera(Context::Ptr context, NodeID node, int resx, int resy)
+template <class Codec>
+i3ds::EmulatedCamera<Codec>::EmulatedCamera(Context::Ptr context, NodeID node, int resx, int resy)
   : Camera(node),
     resx_(resx),
     resy_(resy),
@@ -42,7 +42,7 @@ i3ds::EmulatedCamera::EmulatedCamera(Context::Ptr context, NodeID node, int resx
 {
 
   ebusCameraInterface = new EbusCameraInterface("10.0.1.111",
-						std::bind(&i3ds::EmulatedCamera::send_sample, this,
+						std::bind(&i3ds::EmulatedCamera<Codec>::send_sample, this,
 							  std::placeholders::_1, std::placeholders::_2));
 
   shutter_ = 0;
@@ -63,7 +63,9 @@ i3ds::EmulatedCamera::EmulatedCamera(Context::Ptr context, NodeID node, int resx
   pattern_enabled_ = false;
   pattern_sequence_ = 0;
 
-  CameraMeasurement4MCodec::Initialize(frame_);
+  //CameraMeasurement4MCodec::Initialize(frame_);
+  Codec::Initialize(frame_);
+
 
   frame_.frame_mode = mode_mono;
   frame_.data_depth = 12;
@@ -73,12 +75,14 @@ i3ds::EmulatedCamera::EmulatedCamera(Context::Ptr context, NodeID node, int resx
   frame_.image.nCount = resx_ * resy_ * 2;
 }
 
-i3ds::EmulatedCamera::~EmulatedCamera()
+template <class Codec>
+i3ds::EmulatedCamera<Codec>::~EmulatedCamera()
 {
 }
 
+template <class Codec>
 void
-i3ds::EmulatedCamera::do_activate()
+i3ds::EmulatedCamera<Codec>::do_activate()
 {
   BOOST_LOG_TRIVIAL(info) << "do_activate()";
   ebusCameraInterface->connect();
@@ -97,8 +101,9 @@ i3ds::EmulatedCamera::do_activate()
 
 
 // \todo handle rate. What if not sat?
+template <class Codec>
 void
-i3ds::EmulatedCamera::do_start()
+i3ds::EmulatedCamera<Codec>::do_start()
 {
   BOOST_LOG_TRIVIAL(info) << "do_start()";
   //sampler_.Start(rate());
@@ -107,8 +112,9 @@ i3ds::EmulatedCamera::do_start()
 
 }
 
+template <class Codec>
 void
-i3ds::EmulatedCamera::do_stop()
+i3ds::EmulatedCamera<Codec>::do_stop()
 {
   BOOST_LOG_TRIVIAL(info) << "do_stop()";
 
@@ -118,16 +124,19 @@ i3ds::EmulatedCamera::do_stop()
  // sampler_.Stop();
 }
 
+template <class Codec>
 void
-i3ds::EmulatedCamera::do_deactivate()
+i3ds::EmulatedCamera<Codec>::do_deactivate()
 {
   BOOST_LOG_TRIVIAL(info) << "do_deactivate()";
 }
 
 
 // \todo should it throw if not supported or return just false?
+
+template <class Codec>
 bool
-i3ds::EmulatedCamera::is_rate_supported(SampleRate rate)
+i3ds::EmulatedCamera<Codec>::is_rate_supported(SampleRate rate)
 {
   BOOST_LOG_TRIVIAL(info) << "is_rate_supported()" << rate;
   ebusCameraInterface->checkTriggerInterval(rate);
@@ -137,8 +146,9 @@ i3ds::EmulatedCamera::is_rate_supported(SampleRate rate)
 
 // \todo All parameter must be sat in client or thy wil default to 0. Do we need a don't care state?
 // \todo What if first parameter throws, then the second wil not be sat.
+template <class Codec>
 void
-i3ds::EmulatedCamera::handle_exposure(ExposureService::Data& command)
+i3ds::EmulatedCamera<Codec>::handle_exposure(ExposureService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "handle_exposure()";
   if(is_active() == false){
@@ -159,8 +169,9 @@ i3ds::EmulatedCamera::handle_exposure(ExposureService::Data& command)
 
 // \todo All parameter must be sat in client or thy wil default to 0. Do we need a don't care state?
 // \todo What if first parameter throws, then the second wil not be sat.
+template <class Codec>
 void
-i3ds::EmulatedCamera::handle_auto_exposure(AutoExposureService::Data& command)
+i3ds::EmulatedCamera<Codec>::handle_auto_exposure(AutoExposureService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "handle_auto_exposure()";
   if(!(is_active() || is_operational())){
@@ -187,8 +198,9 @@ i3ds::EmulatedCamera::handle_auto_exposure(AutoExposureService::Data& command)
 
 // \todo All parameter must be sat in client or thy wil default to 0. Do we need a don't care state?
 // \todo What if first parameter throws, then the second wil not be sat.
+template <class Codec>
 void
-i3ds::EmulatedCamera::handle_region(RegionService::Data& command)
+i3ds::EmulatedCamera<Codec>::handle_region(RegionService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "handle_region()";
   if(!(is_active() || is_operational())){
@@ -208,8 +220,9 @@ i3ds::EmulatedCamera::handle_region(RegionService::Data& command)
     }
 }
 
+template <class Codec>
 void
-i3ds::EmulatedCamera::handle_flash(FlashService::Data& command)
+i3ds::EmulatedCamera<Codec>::handle_flash(FlashService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "handle_flash()";
   if(!(is_active() || is_operational())){
@@ -228,8 +241,9 @@ i3ds::EmulatedCamera::handle_flash(FlashService::Data& command)
     }
 }
 
+template <class Codec>
 void
-i3ds::EmulatedCamera::handle_pattern(PatternService::Data& command)
+i3ds::EmulatedCamera<Codec>::handle_pattern(PatternService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "do_pattern()";
   if(!(is_active() || is_operational())){
@@ -250,8 +264,9 @@ i3ds::EmulatedCamera::handle_pattern(PatternService::Data& command)
     }
 }
 
+template <class Codec>
 bool
-i3ds::EmulatedCamera::send_sample(unsigned char *image, unsigned long timestamp_us)
+i3ds::EmulatedCamera<Codec>::send_sample(unsigned char *image, unsigned long timestamp_us)
 {
 
   /*BOOST_LOG_TRIVIAL(info) << "send_sample()";
@@ -272,8 +287,9 @@ i3ds::EmulatedCamera::send_sample(unsigned char *image, unsigned long timestamp_
 }
 
 
+template <class Codec>
 void
-i3ds::EmulatedCamera::handle_configuration(ConfigurationService::Data& config) const
+i3ds::EmulatedCamera<Codec>::handle_configuration(ConfigurationService::Data& config) const
 {
   BOOST_LOG_TRIVIAL(info) << "handle_configuration()";
 

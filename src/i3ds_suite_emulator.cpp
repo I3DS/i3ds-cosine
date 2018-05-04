@@ -119,7 +119,9 @@ int main(int argc, char** argv)
   i3ds::Context::Ptr context = i3ds::Context::Create();;
 
   i3ds::Server server(context);
-  i3ds::EmulatedCamera camera(context, 10, 800, 600);
+
+  // \ Todo Use Template?
+  i3ds::EmulatedCamera<i3ds::CameraMeasurement4MCodec> camera(context, 10, 800, 600);
 
   camera.Attach(server);
 
