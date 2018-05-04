@@ -975,6 +975,7 @@ EbusCameraInterface::StartSamplingLoop ()
 // \brief Disconnects the device
 //
 
+// \TODO: End streaming loop gracefully, change state and throw exception
 void
 EbusCameraInterface::DisconnectDevice ()
 {

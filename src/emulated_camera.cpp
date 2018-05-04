@@ -95,6 +95,8 @@ i3ds::EmulatedCamera::do_activate()
 
 }
 
+
+// \todo handle rate. What if not sat?
 void
 i3ds::EmulatedCamera::do_start()
 {
@@ -122,6 +124,8 @@ i3ds::EmulatedCamera::do_deactivate()
   BOOST_LOG_TRIVIAL(info) << "do_deactivate()";
 }
 
+
+// \todo should it throw if not supported or return just false?
 bool
 i3ds::EmulatedCamera::is_rate_supported(SampleRate rate)
 {
@@ -131,6 +135,8 @@ i3ds::EmulatedCamera::is_rate_supported(SampleRate rate)
   return 0 < rate && rate <= 10000000;
 }
 
+// \todo All parameter must be sat in client or thy wil default to 0. Do we need a don't care state?
+// \todo What if first parameter throws, then the second wil not be sat.
 void
 i3ds::EmulatedCamera::handle_exposure(ExposureService::Data& command)
 {
@@ -150,6 +156,9 @@ i3ds::EmulatedCamera::handle_exposure(ExposureService::Data& command)
   ebusCameraInterface->setGain(gain_);
 }
 
+
+// \todo All parameter must be sat in client or thy wil default to 0. Do we need a don't care state?
+// \todo What if first parameter throws, then the second wil not be sat.
 void
 i3ds::EmulatedCamera::handle_auto_exposure(AutoExposureService::Data& command)
 {
@@ -175,6 +184,9 @@ i3ds::EmulatedCamera::handle_auto_exposure(AutoExposureService::Data& command)
     }
 }
 
+
+// \todo All parameter must be sat in client or thy wil default to 0. Do we need a don't care state?
+// \todo What if first parameter throws, then the second wil not be sat.
 void
 i3ds::EmulatedCamera::handle_region(RegionService::Data& command)
 {
