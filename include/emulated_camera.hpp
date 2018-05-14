@@ -89,7 +89,7 @@ private:
  // Sampler sampler_;
 
   Publisher publisher_;
-  Codec frame_;
+  typename Codec::Data frame_;
 
   EbusCameraInterface * ebusCameraInterface;
 
@@ -101,4 +101,5 @@ private:
 
 } // namespace i3ds
 
+#include "../src/emulated_camera.cpp"
 #endif

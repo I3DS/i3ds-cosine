@@ -12,7 +12,7 @@
 #include <sstream>
 
 
-#include "../include/emulated_camera.hpp"
+//#include "../include/emulated_camera.hpp"
 
 
 #include "../include/ebus_camera_interface.hpp"

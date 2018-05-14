@@ -9,7 +9,7 @@ message(STATUS "PUREGEV_ROOT=${PUREGEV_ROOT}")
 
 
 set (SRCS
-   emulated_camera.cpp
+   # emulated_camera.cpp
   # periodic_sampler.cpp
    ebus_camera_interface.cpp
   )
