@@ -49,6 +49,7 @@ public:
   void startSamplingLoop();
   void startSampling();
   void openForParameterManipulation();
+  void closeForParameterManipulation();
 
   void setGain (int64_t value);
   int64_t getGain ();
@@ -114,6 +115,13 @@ void BaslerHighResInterface::openForParameterManipulation()
 
 
 
+void BaslerHighResInterface::closeForParameterManipulation()
+{
+  cameraParameters->Close();
+}
+
+
+
 int64_t
 BaslerHighResInterface::getGain ()
 {
@@ -152,6 +160,7 @@ void BaslerHighResInterface::stopSampling()
 
 
 }
+
 
 
 void BaslerHighResInterface::startSamplingLoop()
@@ -262,6 +271,7 @@ int main(int argc, char* argv[])
       baslerHRI->getGain();
       baslerHRI->setGain(150);
       baslerHRI->getGain();
+      baslerHRI->closeForParameterManipulation();
 
 
 
