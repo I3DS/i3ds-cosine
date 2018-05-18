@@ -20,8 +20,13 @@
 // Include files to use the PYLON API.
 #include <pylon/PylonIncludes.h>
 
+#include <pylon/gige/BaslerGigEInstantCamera.h>
+
 // Use sstream to create image names including integer
 #include <sstream>
+#include <thread>
+
+#include <unistd.h>
 
 // Namespace for using pylon objects.
 using namespace Pylon;
@@ -35,19 +40,47 @@ using namespace cv;
 // Namespace for using cout.
 using namespace std;
 
+class BaslerHighResInterface
+{
+public:
+  BaslerHighResInterface();
+  void initialiseCamera();
+  void stopSampling();
+  void startSamplingLoop();
+  void startSampling();
+  void openForParameterManipulation();
+
+  void setGain (int64_t value);
+  int64_t getGain ();
+
+
+private:
+
+  CInstantCamera *camera;
+
+  // Automagically call PylonInitialize and PylonTerminate to ensure the pylon runtime system
+  // is initialized during the lifetime of this object.
+  Pylon::PylonAutoInitTerm autoInitTerm;
+
+  std::thread threadSamplingLoop;
+
+  CBaslerGigEInstantCamera *cameraParameters;
+
+
+};
+
+
 // Number of images to be grabbed.
 static const uint32_t c_countOfImagesToGrab = 1000;
 
-
-CInstantCamera *camera;
-
 // The exit code of the sample application.
- int exitCode = 0;
+int exitCode = 0;
 
+BaslerHighResInterface::BaslerHighResInterface(){
 
+}
 
-
-void initialiseCamera() {
+void BaslerHighResInterface::initialiseCamera() {
   // Create an instant camera object with the camera device found first.
   cout << "Creating Camera..." << endl;
   camera = new CInstantCamera (CTlFactory::GetInstance ().CreateFirstDevice ());
@@ -58,12 +91,70 @@ void initialiseCamera() {
   //CInstantCamera camera( CTlFactory::GetInstance().CreateFirstDevice(info));
   cout << "Camera Created." << endl;
   // Print the model name of the camera.
-  cout << "Using device " << camera->GetDeviceInfo().GetModelName() << endl;
+  cout << "Using device : " << camera->GetDeviceInfo().GetModelName() << endl;
+  cout << "Friendly Name: " << camera->GetDeviceInfo().GetFriendlyName() << endl;
+  cout << "Full Name    : " << camera->GetDeviceInfo().GetFullName() << endl;
+  cout << "SerialNumber : " << camera->GetDeviceInfo().GetSerialNumber() << endl;
+
+  cout << endl;
+
+
+
+}
+
+void BaslerHighResInterface::openForParameterManipulation()
+{
+  // Only look for cameras supported by Camera_t.
+  CDeviceInfo info;
+  //info.SetDeviceClass( Camera_t::DeviceClass());
+  // Create an instant camera object with the first found camera device matching the specified device class.
+  cameraParameters = new CBaslerGigEInstantCamera( CTlFactory::GetInstance().CreateFirstDevice( info));
+  cameraParameters->Open();
 }
 
 
 
-void startSamplingLoop()
+int64_t
+BaslerHighResInterface::getGain ()
+{
+  //BOOST_LOG_TRIVIAL (info) << "Fetching parameter: GainValue";
+  //BOOST_LOG_TRIVIAL (info) <<   camera.Gain.GetValue();
+ //
+  cout <<  "Gain Raw: " << cameraParameters->GainRaw.GetValue() << endl;
+  return  cameraParameters->GainRaw.GetValue();
+}
+
+void
+BaslerHighResInterface::setGain (int64_t value)
+{
+  //BOOST_LOG_TRIVIAL (info) << "Fetching parameter: GainValue";
+  //BOOST_LOG_TRIVIAL (info) <<   camera.Gain.GetValue();
+ //
+  cameraParameters->GainRaw.SetValue(value);
+}
+
+
+
+
+
+
+
+
+
+
+
+void BaslerHighResInterface::stopSampling()
+{
+  camera->StopGrabbing();
+  if(threadSamplingLoop.joinable()){
+      threadSamplingLoop.join();
+  }
+
+
+}
+
+
+void BaslerHighResInterface::startSamplingLoop()
 {
 
   // The parameter MaxNumBuffer can be used to control the count of buffers
@@ -76,12 +167,15 @@ void startSamplingLoop()
   CPylonImage pylonImage;
 
   // Create an OpenCV image
-  Mat openCvImage;
+  Mat openCvImage;//
 
   // Start the grabbing of c_countOfImagesToGrab images.
   // The camera device is parameterized with a default configuration which
   // sets up free-running continuous acquisition.
-  camera->StartGrabbing (c_countOfImagesToGrab);
+  //camera->StartGrabbing ();
+  //  camera->StartGrabbing (c_countOfImagesToGrab);
+  camera->StartGrabbing ();
+
 
   // This smart pointer will receive the grab result data.
   CGrabResultPtr ptrGrabResult;
@@ -130,7 +224,7 @@ void startSamplingLoop()
 
 }
 
-void startSampling()
+void BaslerHighResInterface::startSampling()
 {
   // The exit code of the sample application.
      int exitCode = 0;
@@ -138,10 +232,11 @@ void startSampling()
      // Automagically call PylonInitialize and PylonTerminate to ensure the pylon runtime system
      // is initialized during the lifetime of this object.
      Pylon::PylonAutoInitTerm autoInitTerm;
-
+;
      try
      {
-         startSamplingLoop();
+        //startSamplingLoop();
+        threadSamplingLoop = std::thread(&BaslerHighResInterface::startSamplingLoop, this);
      }
      catch (GenICam::GenericException &e)
      {
@@ -154,18 +249,27 @@ void startSampling()
 
 
 
-
 int main(int argc, char* argv[])
 {
 
-  // Automagically call PylonInitialize and PylonTerminate to ensure the pylon runtime system
-  // is initialized during the lifetime of this object.
-  Pylon::PylonAutoInitTerm autoInitTerm;
+  BaslerHighResInterface *baslerHRI =  new BaslerHighResInterface();
 
   try
     {
-      initialiseCamera();
-      startSamplingLoop ();
+      baslerHRI->initialiseCamera();
+
+      baslerHRI->openForParameterManipulation();
+      baslerHRI->getGain();
+      baslerHRI->setGain(150);
+      baslerHRI->getGain();
+
+
+
+
+
+     // baslerHRI->startSamplingLoop ();
+     // sleep(1);
+     // baslerHRI->stopSampling();
     }
   catch (GenICam::GenericException &e)
     {
