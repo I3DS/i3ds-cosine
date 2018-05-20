@@ -1,8 +1,8 @@
 .PHONY       : all clean depend
 
-NAME         := FirstSample
+NAME         := Basler_ToF_Interface
 
-SRCS         := FirstSample.cpp
+SRCS         := Basler_ToF_Interface.cpp
 
 OBJS         := $(SRCS:.cpp=.o)
 
