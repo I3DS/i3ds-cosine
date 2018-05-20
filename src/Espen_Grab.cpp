@@ -28,6 +28,16 @@
 
 #include <unistd.h>
 
+
+#define BOOST_LOG_DYN_LINK
+
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/expressions.hpp>
+
+#undef BOOST_LOG_TRIVIAL
+#define BOOST_LOG_TRIVIAL(info) cout
+
 // Namespace for using pylon objects.
 using namespace Pylon;
 
@@ -43,6 +53,7 @@ using namespace std;
 class BaslerHighResInterface
 {
 public:
+
   BaslerHighResInterface();
   void initialiseCamera();
   void stopSampling();
@@ -54,6 +65,27 @@ public:
   void setGain (int64_t value);
   int64_t getGain ();
 
+  int64_t getShutterTime();
+  void setShutterTime(int64_t value);
+
+  void setRegionEnabled(bool regionEnabled);
+  bool getRegionEnabled();
+
+
+  void setTriggerInterval(int64_t);
+  bool checkTriggerInterval(int64_t);
+
+
+  int64_t getMaxShutterTime();
+  void setMaxShutterTime(int64_t);
+
+#if 0
+  void setRegion(PlanarRegion region);
+  PlanarRegion getRegion();
+#endif
+
+  bool getAutoExposureEnabled ();
+  void setAutoExposureEnabled (bool enabled);
 
 private:
 
@@ -81,7 +113,8 @@ BaslerHighResInterface::BaslerHighResInterface(){
 
 }
 
-void BaslerHighResInterface::initialiseCamera() {
+void
+BaslerHighResInterface::initialiseCamera() {
   // Create an instant camera object with the camera device found first.
   cout << "Creating Camera..." << endl;
   camera = new CInstantCamera (CTlFactory::GetInstance ().CreateFirstDevice ());
@@ -143,16 +176,197 @@ BaslerHighResInterface::setGain (int64_t value)
 
 
 
-
-
-
-
-
-
-
-
-void BaslerHighResInterface::stopSampling()
+int64_t
+BaslerHighResInterface::getShutterTime()
 {
+  BOOST_LOG_TRIVIAL (info) << "getShutterTime()";
+#if 0
+  return cameraParameters->ShutterTime.GetValue();
+#endif
+}
+
+
+void
+BaslerHighResInterface::setShutterTime(int64_t value)
+{
+  BOOST_LOG_TRIVIAL (info) << "SetShutterTime(" << value <<")";
+#if 0
+  cameraParameters->ShutterTime.SetValue(value);
+#endif
+}
+
+
+#if 0
+void
+BaslerHighResInterface::setRegion(PlanarRegion region)
+{
+  BOOST_LOG_TRIVIAL (info) << "setRegion()";
+
+  camera.Width.GetValue(region.width);
+  camera.Heigth.GetValue(region.height);
+
+  camera.OffsetX.GetValue(region.offset_x);
+  camera.OffsetY.GetValue(region.offset_y);
+
+  BOOST_LOG_TRIVIAL (info) << "width: "<< region.width << " " << "heigth: " << region.heigth;
+  BOOST_LOG_TRIVIAL (info) << "offsetX: "<< region.offset_X << " " << "offsetY: " << region.offset_Y;
+
+}
+
+
+PlanarRegion
+BaslerHighResInterface::getRegion(){
+  BOOST_LOG_TRIVIAL (info) << "getRegion()";
+
+  int64_t width = camera.Width.GetValue();
+  int64_t height = camera.Heigth.GetValue();
+
+  int64_t offsetX = camera.OffsetX.GetValue();
+  int64_t offsetY = camera.OffsetY.GetValue();
+
+  BOOST_LOG_TRIVIAL (info) << "width: "<< width << " " << "heigth: " << heigth;
+  BOOST_LOG_TRIVIAL (info) << "offsetX: "<< offsetX << " " << "offsetY: " << offsetY;
+
+ //XXXXPlanarRegion region =XXXX
+ //return region;
+
+}
+
+
+#endif
+
+void
+BaslerHighResInterface::setRegionEnabled(bool regionEnabled)
+{
+  BOOST_LOG_TRIVIAL (info) << "setRegionEnabled()";
+  //cameraParameters->GainRaw.SetValue(value);
+}
+
+
+
+
+bool
+BaslerHighResInterface::getRegionEnabled()
+{
+  BOOST_LOG_TRIVIAL (info) << "getRegionEnabled()";
+  return cameraParameters->GainRaw.GetValue();
+}
+
+
+// \todo float !!!
+void
+BaslerHighResInterface::setTriggerInterval(int64_t value)
+{
+  float value_f;
+  BOOST_LOG_TRIVIAL (info) << "setTriggerInterval(" << value << ")";
+  cameraParameters->AcquisitionFrameRateAbs.SetValue(value_f);
+}
+
+//Todo float!!
+bool
+BaslerHighResInterface::checkTriggerInterval(int64_t value)
+{
+  BOOST_LOG_TRIVIAL (info) << "checkTriggerInterval(" << value << ")";
+
+  double min = cameraParameters->AcquisitionFrameRateAbs.GetMin();
+  double max = cameraParameters->AcquisitionFrameRateAbs.GetMax();
+  BOOST_LOG_TRIVIAL (info) << "checkTriggerInterval: min: " << min << " max:" << max;
+  if(value < min || value > max)
+    {
+      BOOST_LOG_TRIVIAL (info) << "checkTriggerInterval out of range";
+      return false;
+    }
+  BOOST_LOG_TRIVIAL (info) << "Triggerinterval OK";
+  return true;
+}
+
+
+
+int64_t
+BaslerHighResInterface::getMaxShutterTime()
+{
+  BOOST_LOG_TRIVIAL (info) << "getMaxShutterTime()";
+#if 0
+  return cameraParameters->MaxShutterTime.GetValue();
+#endif
+}
+
+void
+BaslerHighResInterface::setMaxShutterTime(int64_t value)
+{
+  BOOST_LOG_TRIVIAL (info) << "setMaxShutterTime(" << value << ")";
+#if 0
+  cameraParameters->MaxShutterTime.SetValue(value);
+#endif
+}
+
+
+
+// Todo This is actually a boolean!!!!
+
+// TODO What about once?
+
+bool
+BaslerHighResInterface::getAutoExposureEnabled ()
+{
+  BOOST_LOG_TRIVIAL (info) << "Fetching parameter: getAutoExposureEnabled";
+
+  bool retval = false;
+  Basler_GigECamera::ExposureAutoEnums e = cameraParameters->ExposureAuto.GetValue();
+
+  /*
+  ExposureAuto_Off --> Disables the Exposure Auto function.
+  ExposureAuto_Once -->	Sets operation mode to 'once'.
+  ExposureAuto_Continuous --> Sets operation mode to 'continuous'.
+  */
+
+  switch(e){
+    case Basler_GigECamera::ExposureAuto_Continuous:
+      BOOST_LOG_TRIVIAL (info) << "Fetched parameter: ExposureAuto_Continuous";
+      retval = true;
+      break;
+
+    case Basler_GigECamera::ExposureAutoEnums::ExposureAuto_Once:
+      BOOST_LOG_TRIVIAL (info) << "Fetched parameter: :ExposureAuto_Once ";
+      retval = false;
+      break;
+
+    case Basler_GigECamera::ExposureAutoEnums:: ExposureAuto_Off:
+      BOOST_LOG_TRIVIAL (info) << "Fetched parameter:ExposureAuto_Off";
+      retval = false;
+      break;
+  }
+  return retval;
+}
+
+
+
+
+// TODO What about once?
+void
+BaslerHighResInterface::setAutoExposureEnabled (bool enabled)
+{
+  BOOST_LOG_TRIVIAL (info) << "Set setAutoExposureEnabled(AutoExposure): " << enabled;
+  if (enabled)
+    {
+      cameraParameters->ExposureAuto.SetValue(Basler_GigECamera::ExposureAutoEnums::ExposureAuto_Continuous);
+    }
+  else
+    {
+      cameraParameters->ExposureAuto.SetValue(Basler_GigECamera::ExposureAutoEnums::ExposureAuto_Off);
+    }
+
+}
+
+
+
+
+
+
+void
+BaslerHighResInterface::stopSampling()
+{
+  BOOST_LOG_TRIVIAL (info) << "stopSampling()";
   camera->StopGrabbing();
   if(threadSamplingLoop.joinable()){
       threadSamplingLoop.join();
@@ -163,8 +377,10 @@ void BaslerHighResInterface::stopSampling()
 
 
 
-void BaslerHighResInterface::startSamplingLoop()
+void
+BaslerHighResInterface::startSamplingLoop()
 {
+  BOOST_LOG_TRIVIAL (info) << "startSamplingLoop()";
 
   // The parameter MaxNumBuffer can be used to control the count of buffers
   // allocated for grabbing. The default value of this parameter is 10.
@@ -233,8 +449,11 @@ void BaslerHighResInterface::startSamplingLoop()
 
 }
 
-void BaslerHighResInterface::startSampling()
+void
+BaslerHighResInterface::startSampling()
 {
+
+  BOOST_LOG_TRIVIAL (info) << "startSampling()";
   // The exit code of the sample application.
      int exitCode = 0;
 
@@ -254,8 +473,8 @@ void BaslerHighResInterface::startSampling()
          << e.GetDescription() << endl;
          exitCode = 1;
      }
-}
 
+}
 
 
 int main(int argc, char* argv[])
