@@ -15,7 +15,20 @@
 //#include "../include/emulated_camera.hpp"
 
 
+#ifdef TOF_CAMERA
+#include "../include/basler_tof_interface.hpp"
+#endif
+
+#ifdef BASLER_HIGH_RES_CAMERA
+#include "../include/Basler_highres_camera_interface.hpp"
+#endif
+
+#ifdef EBUS_CAMERA
 #include "../include/ebus_camera_interface.hpp"
+#endif
+
+
+
 
 #define BOOST_LOG_DYN_LINK
 
@@ -32,7 +45,7 @@ namespace logging = boost::log;
 
 
 template <class Codec>
-i3ds::EmulatedCamera<Codec>::EmulatedCamera(Context::Ptr context, NodeID node, int resx, int resy)
+i3ds::EmulatedCamera<Codec>::EmulatedCamera(Context::Ptr context, NodeID node, int resx, int resy, std::string ipAddress)
   : Camera(node),
     resx_(resx),
     resy_(resy),
@@ -40,10 +53,31 @@ i3ds::EmulatedCamera<Codec>::EmulatedCamera(Context::Ptr context, NodeID node, i
    // sampler_(std::bind(&i3ds::EmulatedCamera::send_sample, this, std::placeholders::_1)),
     publisher_(context, node)
 {
-
-  ebusCameraInterface = new EbusCameraInterface("10.0.1.111",
+  BOOST_LOG_TRIVIAL(info) << "test1a";
+#ifdef EBUS_CAMERA
+  cameraInterface = new EbusCameraInterface(ipAddress.c_str(),
+  						std::bind(&i3ds::EmulatedCamera<Codec>::send_sample, this,
+  							  std::placeholders::_1, std::placeholders::_2));
+ /* cameraInterface = new EbusCameraInterface("10.0.1.117",
 						std::bind(&i3ds::EmulatedCamera<Codec>::send_sample, this,
 							  std::placeholders::_1, std::placeholders::_2));
+*/
+
+#endif
+
+#ifdef BASLER_HIGH_RES_CAMERA
+  ;
+#endif
+
+
+#ifdef TOF_CAMERA
+  cameraInterface = new Basler_ToF_Interface(ipAddress.c_str(),
+  						std::bind(&i3ds::EmulatedCamera<Codec>::send_sample, this,
+							  std::placeholders::_1, std::placeholders::_2));
+#endif
+
+
+
 
   shutter_ = 0;
   gain_ = 0.0;
@@ -62,17 +96,29 @@ i3ds::EmulatedCamera<Codec>::EmulatedCamera(Context::Ptr context, NodeID node, i
 
   pattern_enabled_ = false;
   pattern_sequence_ = 0;
-
   //CameraMeasurement4MCodec::Initialize(frame_);
   Codec::Initialize(frame_);
-
-
+#ifdef TOF_CAMERA
+  ;
+#else
   frame_.frame_mode = mode_mono;
   frame_.data_depth = 12;
   frame_.pixel_size = 2;
+#endif
+
   frame_.region.size_x = resx_;
   frame_.region.size_y = resy_;
+
+#ifdef STEREO_CAMERA
+  frame_.image_left.nCount = resx_ * resy_ * 2;
+  frame_.image_right.nCount = resx_ * resy_ * 2;
+
+#elif defined(TOF_CAMERA)
+;
+
+#else
   frame_.image.nCount = resx_ * resy_ * 2;
+#endif
 }
 
 template <class Codec>
@@ -85,16 +131,38 @@ void
 i3ds::EmulatedCamera<Codec>::do_activate()
 {
   BOOST_LOG_TRIVIAL(info) << "do_activate()";
-  ebusCameraInterface->connect();
-  shutter_ = ebusCameraInterface->getShutterTime();
+  cameraInterface->connect();
+
+#ifdef STEREO_CAMERA
+  cameraInterface->setSourceBothStreams();
+#endif
+
+
+
+  shutter_ = cameraInterface->getShutterTime();
   BOOST_LOG_TRIVIAL(info) << "Shutter_: " << shutter_;
 
-  PlanarRegion planarRegion = ebusCameraInterface->getRegion();
+  PlanarRegion planarRegion = cameraInterface->getRegion();
 
 
-  frame_.region.size_x = resx_ = planarRegion.size_x;
+ frame_.region.size_x = resx_ = planarRegion.size_x;
+
+ // TODO Can simplifyies
+
+
+#ifdef TOF_CAMERA
+  //frame_.region.size_y = resy_ = planarRegion.size_y/2;
+ // frame_.image_left.nCount = resx_ * resy_ * 2;
+ // frame_.image_right.nCount = resx_ * resy_ * 2;
+ ;
+#elif defined(STEREO_CAMERA)
+  frame_.region.size_y = resy_ = planarRegion.size_y/2;
+  frame_.image_left.nCount = resx_ * resy_ * 2;
+  frame_.image_right.nCount = resx_ * resy_ * 2;
+#else
   frame_.region.size_y = resy_ = planarRegion.size_y;
   frame_.image.nCount = resx_ * resy_ * 2;
+#endif
 
 
 }
@@ -108,7 +176,7 @@ i3ds::EmulatedCamera<Codec>::do_start()
   BOOST_LOG_TRIVIAL(info) << "do_start()";
   //sampler_.Start(rate());
 
-  ebusCameraInterface->do_start();
+  cameraInterface->do_start();
 
 }
 
@@ -118,7 +186,7 @@ i3ds::EmulatedCamera<Codec>::do_stop()
 {
   BOOST_LOG_TRIVIAL(info) << "do_stop()";
 
-  ebusCameraInterface->do_stop();
+  cameraInterface->do_stop();
 
 
  // sampler_.Stop();
@@ -139,12 +207,12 @@ bool
 i3ds::EmulatedCamera<Codec>::is_rate_supported(SampleRate rate)
 {
   BOOST_LOG_TRIVIAL(info) << "is_rate_supported()" << rate;
-  ebusCameraInterface->checkTriggerInterval(rate);
+  cameraInterface->checkTriggerInterval(rate);
   //rate_ = rate;
   return 0 < rate && rate <= 10000000;
 }
 
-// \todo All parameter must be sat in client or thy wil default to 0. Do we need a don't care state?
+// \todo All parameter must be s at in client or thy wil default to 0. Do we need a don't care state?
 // \todo What if first parameter throws, then the second wil not be sat.
 template <class Codec>
 void
@@ -161,9 +229,9 @@ i3ds::EmulatedCamera<Codec>::handle_exposure(ExposureService::Data& command)
 
   auto_exposure_enabled_ = false;
   shutter_ = command.request.shutter;
-  ebusCameraInterface->setShutterTime(shutter_);
+  cameraInterface->setShutterTime(shutter_);
   gain_ = command.request.gain;
-  ebusCameraInterface->setGain(gain_);
+  cameraInterface->setGain(gain_);
 }
 
 
@@ -183,13 +251,13 @@ i3ds::EmulatedCamera<Codec>::handle_auto_exposure(AutoExposureService::Data& com
   }
   auto_exposure_enabled_ = command.request.enable;
   BOOST_LOG_TRIVIAL(info) << "handle_auto_exposure: enable: "<< command.request.enable;
-  ebusCameraInterface->setAutoExposureEnabled(command.request.enable);
+  cameraInterface->setAutoExposureEnabled(command.request.enable);
 
   if (command.request.enable)
     {
       //max_exposure_ = command.request.max_exposure;
       //max_gain_ = command.request.max_gain;
-      ebusCameraInterface->setMaxShutterTime(command.request.max_shutter);
+      cameraInterface->setMaxShutterTime(command.request.max_shutter);
 
 
     }
@@ -212,11 +280,11 @@ i3ds::EmulatedCamera<Codec>::handle_region(RegionService::Data& command)
   }
 
   region_enabled_ = command.request.enable;
-  ebusCameraInterface->setRegionEnabled(command.request.enable);
+  cameraInterface->setRegionEnabled(command.request.enable);
 
   if (command.request.enable)
     {
-      ebusCameraInterface->setRegion(command.request.region);
+      cameraInterface->setRegion(command.request.region);
     }
 }
 
@@ -277,7 +345,35 @@ i3ds::EmulatedCamera<Codec>::send_sample(unsigned char *image, unsigned long tim
   printf("frame_.region.size_x: %d\n",frame_.region.size_x );
   printf("frame_.region.size_y: %d\n",frame_.region.size_y );
 */
+
+#ifdef TOF_CAMERA
+  /*
+  typedef struct {
+      SampleAttributes attributes;
+      ToFMeasurement500K_distances distances;
+      ToFMeasurement500K_validity validity;
+      PlanarRegion region;
+  } ToFMeasurement500K;
+  */
+
+
+  //memcpy(frame_.image.distances, image,  frame_.image.nCount);
+  //memcpy(frame_.image.validity, image,  frame_.image.nCount);
+
+
+#endif
+
+#ifdef STEREO_CAMERA
+  memcpy(frame_.image_left.arr, image,  frame_.image_left.nCount);
+  memcpy(frame_.image_right.arr, image + frame_.image_left.nCount,  frame_.image_right.nCount);
+  BOOST_LOG_TRIVIAL(info) << "send_sample()"<< +frame_.image_left.arr[100]<<" "<< +frame_.image_left.arr[101];
+#endif
+
+#ifndef STEREO_CAMERA
+#ifndef TOF_CAMERA
   memcpy(frame_.image.arr, image,  frame_.image.nCount);
+#endif
+#endif
 
   frame_.attributes.timestamp.microseconds = timestamp_us;
   frame_.attributes.validity = sample_valid;
@@ -293,13 +389,13 @@ i3ds::EmulatedCamera<Codec>::handle_configuration(ConfigurationService::Data& co
 {
   BOOST_LOG_TRIVIAL(info) << "handle_configuration()";
 
-  config.response.shutter = ebusCameraInterface->getShutterTime();
-  config.response.gain = ebusCameraInterface->getGain();
-  config.response.auto_exposure_enabled = ebusCameraInterface->getAutoExposureEnabled();
-  config.response.max_shutter = ebusCameraInterface->getMaxShutterTime();
-  config.response.max_gain = ebusCameraInterface->getMaxShutterTime();
-  config.response.region_enabled = ebusCameraInterface->getRegionEnabled();
-  config.response.region = ebusCameraInterface->getRegion();
+  config.response.shutter = cameraInterface->getShutterTime();
+  config.response.gain = cameraInterface->getGain();
+  config.response.auto_exposure_enabled = cameraInterface->getAutoExposureEnabled();
+  config.response.max_shutter = cameraInterface->getMaxShutterTime();
+  config.response.max_gain = cameraInterface->getMaxShutterTime();
+  config.response.region_enabled = cameraInterface->getRegionEnabled();
+  config.response.region = cameraInterface->getRegion();
   config.response.flash_enabled = flash_enabled();
   config.response.flash_strength = flash_strength();
   config.response.pattern_enabled = pattern_enabled();
