@@ -61,7 +61,7 @@ class EbusCameraInterface: protected PvDeviceEventSink {
 
 
     char * getEnum(PvString whichParameter);
-    void setEnum(PvString whichParameter, PvString value);
+    void setEnum(PvString whichParameter, PvString value, bool dontCheckParameter = false);
     bool checkIfEnumOptionIsOK(PvString whichParameter, PvString value);
 
 
@@ -91,6 +91,7 @@ class EbusCameraInterface: protected PvDeviceEventSink {
     void setMaxShutterTime(int64_t);
 
 
+    void setSourceBothStreams();
 
     void do_start();
     void do_stop();

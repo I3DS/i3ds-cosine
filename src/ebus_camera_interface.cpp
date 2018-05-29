@@ -49,7 +49,7 @@ bool
 EbusCameraInterface::connect ()
 {
   BOOST_LOG_TRIVIAL (info) << "Connecting to camera";
-  mConnectionID = "10.0.1.111";
+  //mConnectionID = "10.0.1.111";
 
   BOOST_LOG_TRIVIAL (info) << "--> ConnectDevice " << mConnectionID.GetAscii ();
 
@@ -290,14 +290,22 @@ EbusCameraInterface::checkIfEnumOptionIsOK (PvString whichParameter,
 
 }
 
+
 void
-EbusCameraInterface::setEnum (PvString whichParameter, PvString value)
+EbusCameraInterface::setEnum (PvString whichParameter, PvString value, bool dontCheckParameter)
 {
   BOOST_LOG_TRIVIAL (info) << "setEnum: Parameter: "
       << whichParameter.GetAscii () << "Value: " << value.GetAscii ();
   BOOST_LOG_TRIVIAL (info) << "do checkIfEnumOptionIsOK: Parameter first";
 
-  if (checkIfEnumOptionIsOK (whichParameter, value))
+  bool enumOK = true;
+  if(dontCheckParameter == false)
+    {
+      enumOK = checkIfEnumOptionIsOK (whichParameter, value);
+    }
+
+  // enumOK== true if not options not checked.
+  if (enumOK)
     {
 
       PvGenParameter *lParameter = lParameters->Get (whichParameter);
@@ -412,6 +420,7 @@ EbusCameraInterface::setIntParameter (PvString whichParameter, int64_t value)
 
 
 
+
 	  BOOST_LOG_TRIVIAL (info) << "Rounding to min";
 	  value = min;
 	};
@@ -439,6 +448,19 @@ EbusCameraInterface::setIntParameter (PvString whichParameter, int64_t value)
     }
 
 }
+
+
+/// \REMARK SourceSelector parameter does not return the Option All with getEnum.
+/// It also mixes the strings. But one can set it.
+/// \TODO How is it handled in ebusplayer?
+void
+EbusCameraInterface::setSourceBothStreams()
+{
+  getEnum("SourceSelector");
+  setEnum ("SourceSelector", "All", true);
+}
+
+
 
 // Todo This is actually a boolean!!!!
 bool
@@ -928,6 +950,7 @@ EbusCameraInterface::StartSamplingLoop ()
 		      // Read width, height.
 		      lWidth = lImage->GetWidth ();
 		      lHeight = lImage->GetHeight ();
+		      BOOST_LOG_TRIVIAL (info) << "Width: " << lWidth << " Height: "<< lHeight;
 
 		      clock::time_point next = clock::now();
 		     // BOOST_LOG_TRIVIAL (info) << "--> datapointer: " << lImage->GetDataPointer();
