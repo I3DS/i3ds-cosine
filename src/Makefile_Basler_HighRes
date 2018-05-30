@@ -2,7 +2,7 @@
 .PHONY: all clean
 
 # The program to build
-NAME       := Espen_Grab
+NAME       := basler_high_res_interface
 
 # Installation directories for pylon
 PYLON_ROOT ?= /opt/pylon5
