@@ -64,12 +64,25 @@ find_library(PLEORA_LIBRARY PvBase HINTS "${PUREGEV_ROOT}/lib/")
 link_directories("${PUREGEV_ROOT}/lib/")
 
 
+#BASLER
+
+
+
+
+
+
+
+
+
+
+
+
 #BASLER_TOF
 set (GENTL_ROOT /opt/BaslerToF)
 set (GENAPI_POSTFIX gcc_v3_0_Basler_pylon_v5_0)
-set (BASLER_LIBDIR  ${GENTL_ROOT}/lib64)
+set (BASLER_TOF_LIBDIR  ${GENTL_ROOT}/lib64)
 set (BASLER_TOF_INCLUDES ${GENTL_ROOT}/include)
-set (BASLER_LIBS 
+set (BASLER_TOF_LIBS 
 #      L${LIBDIR} 
       GenApi_${GENAPI_POSTFIX} 
       GCBase_${GENAPI_POSTFIX} 
@@ -77,16 +90,29 @@ set (BASLER_LIBS
       pthread
 )
 
-set (BASLER_LIB_FLAGS Wl 
+set (BASLER_TOF_LIB_FLAGS Wl 
       enable-new-dtags Wl
       rpath ${LIBDIR} Wl
       rpath ${LIBDIR}/gentlproducer/gtl 
  
        Wl E
 )
-set (BASLER_CXX_FLAGS 
-      std=c++11 Wall Wno-unknown-pragmas
+set (BASLER_TOF_CXX_FLAGS 
+      -std=c++11 -Wall -Wno-unknown-pragmas
 )
+
+link_directories(${BASLER_TOF_LIBDIR})
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -169,8 +195,8 @@ add_executable (PleoraTir i3ds_suite_emulator.cpp ${SRCS})
 #Basler ToF
   add_executable (BaslerToF i3ds_suite_emulator.cpp basler_tof_interface.cpp )
   target_include_directories(BaslerToF PRIVATE ${BASLER_TOF_INCLUDES})
-  target_compile_definitions(BaslerToF PRIVATE  BASLER_CAMERA=1 TOF_CAMERA=1 DEFAULT_NODE_ID=10 DEFAULT_IP_ADDRESS="10.0.1.110")
-  target_link_libraries (BaslerToF ${BASLER_LIBS} ${LIBS} ${Boost_LIBRARIES})
+  target_compile_definitions(BaslerToF PRIVATE BASLER_CAMERA=1 TOF_CAMERA=1 DEFAULT_NODE_ID=10 DEFAULT_IP_ADDRESS="10.0.1.110" )
+  target_link_libraries (BaslerToF ${BASLER_TOF_LIBS} ${LIBS} ${Boost_LIBRARIES})
   install(TARGETS BaslerToF DESTINATION bin)
   
 
