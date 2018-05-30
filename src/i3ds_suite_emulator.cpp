@@ -167,22 +167,22 @@ int main(int argc, char** argv)
 
 
 #ifdef HR_CAMERA
-  camera = new i3ds::EmulatedCamera<i3ds::CameraMeasurement8MCodec>(context, 10, 800, 600, ip_address);
+  camera = new i3ds::EmulatedCamera<i3ds::CameraMeasurement8MCodec>(context, node_id, 800, 600, ip_address);
 #endif
 
 #ifdef TOF_CAMERA
-camera = new i3ds::EmulatedCamera<i3ds::ToFMeasurement500KCodec>(context, 10, 800, 600, ip_address);
+camera = new i3ds::EmulatedCamera<i3ds::ToFMeasurement500KCodec>(context, node_id, 800, 600, ip_address);
 #endif
 
 #ifdef STEREO_CAMERA
-camera = new i3ds::EmulatedCamera<i3ds::StereoCameraMeasurement8MCodec>(context, 10, 800, 600, ip_address);
+camera = new i3ds::EmulatedCamera<i3ds::StereoCameraMeasurement8MCodec>(context, node_id, 800, 600, ip_address);
 #endif
 
 
 #ifndef TOF_CAMERA
 #ifndef HR_CAMERA
 #ifndef STEREO_CAMERA
-camera = new i3ds::EmulatedCamera<i3ds::CameraMeasurement4MCodec>(context, 10, 800, 600, ip_address);
+camera = new i3ds::EmulatedCamera<i3ds::CameraMeasurement4MCodec>(context, node_id, 800, 600, ip_address);
 #endif
 #endif
 #endif
