@@ -95,6 +95,7 @@ class EbusCameraInterface: protected PvDeviceEventSink {
 
     void do_start();
     void do_stop();
+    void do_deactivate();
 
 
 

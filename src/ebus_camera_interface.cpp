@@ -103,7 +103,6 @@ EbusCameraInterface::getParameter (PvString whichParameter)
 
   BOOST_LOG_TRIVIAL (info) << "Fetching parameter: "
       << whichParameter.GetAscii ();
-
   PvGenParameter *lParameter = lParameters->Get (whichParameter);
   PvGenInteger *lIntParameter = dynamic_cast<PvGenInteger *> (lParameter);
 
@@ -864,6 +863,12 @@ void EbusCameraInterface::do_stop()
 //
 // Acquisition loop
 //
+
+void EbusCameraInterface::do_deactivate (){
+  mDevice->Disconnect();
+}
+
+
 
 void
 EbusCameraInterface::StartSamplingLoop ()
