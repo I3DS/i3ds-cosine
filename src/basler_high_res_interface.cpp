@@ -1,19 +1,14 @@
-/* openCVGrab: A sample program showing to convert Pylon images to opencv MAT.
-	Copyright 2017 Matthew Breit <matt.breit@gmail.com>
-	Licensed under the Apache License, Version 2.0 (the "License");
-	you may not use this file except in compliance with the License.
-	You may obtain a copy of the License at
-       http://www.apache.org/licenses/LICENSE-2.0
-	Unless required by applicable law or agreed to in writing, software
-	distributed under the License is distributed on an "AS IS" BASIS,
-	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	See the License for the specific language governing permissions and
-	limitations under the License.
-	THIS SOFTWARE REQUIRES ADDITIONAL SOFTWARE (IE: LIBRARIES) IN ORDER TO COMPILE
-	INTO BINARY FORM AND TO FUNCTION IN BINARY FORM. ANY SUCH ADDITIONAL SOFTWARE
-	IS OUTSIDE THE SCOPE OF THIS LICENSE.
-*/
-// Include files to use OpenCV API.
+///////////////////////////////////////////////////////////////////////////\file
+///
+///   Copyright 2018 SINTEF AS
+///
+///   This Source Code Form is subject to the terms of the Mozilla
+///   Public License, v. 2.0. If a copy of the MPL was not distributed
+///   with this file, You can obtain one at https://mozilla.org/MPL/2.0/
+///
+////////////////////////////////////////////////////////////////////////////////
+
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
@@ -27,6 +22,9 @@
 #include <thread>
 
 #include <unistd.h>
+
+#include "../include/basler_high_res_interface.hpp"
+
 
 
 #define BOOST_LOG_DYN_LINK
@@ -50,57 +48,6 @@ using namespace cv;
 // Namespace for using cout.
 using namespace std;
 
-class BaslerHighResInterface
-{
-public:
-
-  BaslerHighResInterface();
-  void initialiseCamera();
-  void stopSampling();
-  void startSamplingLoop();
-  void startSampling();
-  void openForParameterManipulation();
-  void closeForParameterManipulation();
-
-  void setGain (int64_t value);
-  int64_t getGain ();
-
-  int64_t getShutterTime();
-  void setShutterTime(int64_t value);
-
-  void setRegionEnabled(bool regionEnabled);
-  bool getRegionEnabled();
-
-
-  void setTriggerInterval(int64_t);
-  bool checkTriggerInterval(int64_t);
-
-
-  int64_t getMaxShutterTime();
-  void setMaxShutterTime(int64_t);
-
-#if 0
-  void setRegion(PlanarRegion region);
-  PlanarRegion getRegion();
-#endif
-
-  bool getAutoExposureEnabled ();
-  void setAutoExposureEnabled (bool enabled);
-
-private:
-
-  CInstantCamera *camera;
-
-  // Automagically call PylonInitialize and PylonTerminate to ensure the pylon runtime system
-  // is initialized during the lifetime of this object.
-  Pylon::PylonAutoInitTerm autoInitTerm;
-
-  std::thread threadSamplingLoop;
-
-  CBaslerGigEInstantCamera *cameraParameters;
-
-
-};
 
 
 // Number of images to be grabbed.
