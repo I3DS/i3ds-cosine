@@ -114,7 +114,7 @@ i3ds::EmulatedCamera<Codec>::EmulatedCamera(Context::Ptr context, NodeID node, i
   frame_.image_right.nCount = resx_ * resy_ * 2;
 
 #elif defined(TOF_CAMERA)
-;
+  frame_.distances.nCount = resx_ * resy_ * 2;
 
 #else
   frame_.image.nCount = resx_ * resy_ * 2;
@@ -151,7 +151,7 @@ i3ds::EmulatedCamera<Codec>::do_activate()
 
 
 #ifdef TOF_CAMERA
-  //frame_.region.size_y = resy_ = planarRegion.size_y/2;
+   frame_.region.size_y = resy_ = planarRegion.size_y;
  // frame_.image_left.nCount = resx_ * resy_ * 2;
  // frame_.image_right.nCount = resx_ * resy_ * 2;
  ;
@@ -197,6 +197,7 @@ void
 i3ds::EmulatedCamera<Codec>::do_deactivate()
 {
   BOOST_LOG_TRIVIAL(info) << "do_deactivate()";
+  cameraInterface->do_deactivate ();
 }
 
 
@@ -359,7 +360,7 @@ i3ds::EmulatedCamera<Codec>::send_sample(unsigned char *image, unsigned long tim
 
   //memcpy(frame_.image.distances, image,  frame_.image.nCount);
   //memcpy(frame_.image.validity, image,  frame_.image.nCount);
-
+;
 
 #endif
 
