@@ -31,22 +31,22 @@ namespace po = boost::program_options;
 namespace logging = boost::log;
 
 #ifdef STEREO_CAMERA
- i3ds::EmulatedCamera<i3ds::StereoMonoFrame8MCodec> *camera;
+ i3ds::EmulatedCamera<i3ds::Camera::StereoFrame8MTopic> *camera;
 #endif
 
 #ifdef HR_CAMERA
-  i3ds::EmulatedCamera<i3ds::MonoFrame8MCodec> *camera;
+  i3ds::EmulatedCamera<i3ds::Camera::MonoFrame8MTopic> *camera;
 #endif
 
 #ifdef TOF_CAMERA
-  i3ds::EmulatedCamera<i3ds::ToFMeasurement500KCodec> *camera;
+  i3ds::EmulatedCamera<i3ds::ToFCamera::Measurement500KTopic> *camera;
 #endif
 
 
 #ifndef STEREO_CAMERA
 #ifndef HR_CAMERA
 #ifndef TOF_CAMERA
- i3ds::EmulatedCamera<i3ds::MonoFrame4MCodec> *camera;
+ i3ds::EmulatedCamera<i3ds::Camera::MonoFrame4MTopic> *camera;
 #endif
 #endif
 #endif
@@ -148,22 +148,22 @@ int main(int argc, char** argv)
 
 
 #ifdef HR_CAMERA
-  camera = new i3ds::EmulatedCamera<i3ds::MonoFrame8MCodec>(context, node_id, 800, 600, ip_address, camera_name);
+  camera = new i3ds::EmulatedCamera<i3ds::Camera::MonoFrame8MTopic>(context, node_id, 800, 600, ip_address, camera_name);
 #endif
 
 #ifdef TOF_CAMERA
-camera = new i3ds::EmulatedCamera<i3ds::ToFMeasurement500KCodec>(context, node_id, 800, 600, ip_address, camera_name);
+camera = new i3ds::EmulatedCamera<i3ds::ToFCamera::Measurement500KTopic>(context, node_id, 800, 600, ip_address, camera_name);
 #endif
 
 #ifdef STEREO_CAMERA
-camera = new i3ds::EmulatedCamera<i3ds::StereoFrame8MCodec>(context, node_id, 800, 600, ip_address, camera_name);
+camera = new i3ds::EmulatedCamera<i3ds::Camera::StereoFrame8MTopic>(context, node_id, 800, 600, ip_address, camera_name);
 #endif
 
 
 #ifndef TOF_CAMERA
 #ifndef HR_CAMERA
 #ifndef STEREO_CAMERA
-camera = new i3ds::EmulatedCamera<i3ds::MonoFrame4MCodec>(context, node_id, 800, 600, ip_address, camera_name);
+camera = new i3ds::EmulatedCamera<i3ds::Camera::MonoFrame4MTopic>(context, node_id, 800, 600, ip_address, camera_name);
 #endif
 #endif
 #endif

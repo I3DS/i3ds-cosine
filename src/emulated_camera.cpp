@@ -45,8 +45,8 @@ namespace logging = boost::log;
 
 
 
-template <class Codec>
-i3ds::EmulatedCamera<Codec>::EmulatedCamera(Context::Ptr context, NodeID node, int resx, int resy,
+template <class MeasurementTopic>
+i3ds::EmulatedCamera<MeasurementTopic>::EmulatedCamera(Context::Ptr context, NodeID node, int resx, int resy,
 					     std::string ipAddress, std::string camera_name)
   : Camera(node),
     resx_(resx),
@@ -58,7 +58,7 @@ i3ds::EmulatedCamera<Codec>::EmulatedCamera(Context::Ptr context, NodeID node, i
   BOOST_LOG_TRIVIAL(info) << "EmulatedCamera::EmulatedCamera()";
 #ifdef EBUS_CAMERA
   cameraInterface = new EbusCameraInterface(ipAddress.c_str(), camera_name.c_str(),
-  						std::bind(&i3ds::EmulatedCamera<Codec>::send_sample, this,
+  						std::bind(&i3ds::EmulatedCamera<MeasurementTopic>::send_sample, this,
   							  std::placeholders::_1, std::placeholders::_2));
  /* cameraInterface = new EbusCameraInterface("10.0.1.117",
 						std::bind(&i3ds::EmulatedCamera<Codec>::send_sample, this,
@@ -70,14 +70,14 @@ i3ds::EmulatedCamera<Codec>::EmulatedCamera(Context::Ptr context, NodeID node, i
 #ifdef BASLER_CAMERA
 #ifdef HR_CAMERA
   cameraInterface = new BaslerHighResInterface(ipAddress.c_str(), camera_name.c_str(),
-   						std::bind(&i3ds::EmulatedCamera<Codec>::send_sample, this,
+   						std::bind(&i3ds::EmulatedCamera<MeasurementTopic>::send_sample, this,
  							  std::placeholders::_1, std::placeholders::_2));
 #endif
 
 
 #ifdef TOF_CAMERA
   cameraInterface = new Basler_ToF_Interface(	ipAddress.c_str(),camera_name.c_str(),
-  						std::bind(&i3ds::EmulatedCamera<Codec>::send_sample, this,
+  						std::bind(&i3ds::EmulatedCamera<MeasurementTopic>::send_sample, this,
 				std::placeholders::_1, std::placeholders::_2));
 #endif
 #endif
@@ -102,7 +102,7 @@ i3ds::EmulatedCamera<Codec>::EmulatedCamera(Context::Ptr context, NodeID node, i
   pattern_enabled_ = false;
   pattern_sequence_ = 0;
   //CameraMeasurement4MCodec::Initialize(frame_);
-  Codec::Initialize(frame_);
+  MeasurementTopic::Codec::Initialize(frame_);
 #ifdef TOF_CAMERA
   ;
 #else
@@ -126,14 +126,14 @@ i3ds::EmulatedCamera<Codec>::EmulatedCamera(Context::Ptr context, NodeID node, i
 #endif
 }
 
-template <class Codec>
-i3ds::EmulatedCamera<Codec>::~EmulatedCamera()
+template <class MeasurementTopic>
+i3ds::EmulatedCamera<MeasurementTopic>::~EmulatedCamera()
 {
 }
 
-template <class Codec>
+template <class MeasurementTopic>
 void
-i3ds::EmulatedCamera<Codec>::do_activate()
+i3ds::EmulatedCamera<MeasurementTopic>::do_activate()
 {
   BOOST_LOG_TRIVIAL(info) << "do_activate()";
   cameraInterface->connect();
@@ -174,9 +174,9 @@ i3ds::EmulatedCamera<Codec>::do_activate()
 
 
 // \todo handle rate. What if not sat?
-template <class Codec>
+template <class MeasurementTopic>
 void
-i3ds::EmulatedCamera<Codec>::do_start()
+i3ds::EmulatedCamera<MeasurementTopic>::do_start()
 {
   BOOST_LOG_TRIVIAL(info) << "do_start()";
   //sampler_.Start(rate());
@@ -185,9 +185,9 @@ i3ds::EmulatedCamera<Codec>::do_start()
 
 }
 
-template <class Codec>
+template <class MeasurementTopic>
 void
-i3ds::EmulatedCamera<Codec>::do_stop()
+i3ds::EmulatedCamera<MeasurementTopic>::do_stop()
 {
   BOOST_LOG_TRIVIAL(info) << "do_stop()";
 
@@ -197,9 +197,9 @@ i3ds::EmulatedCamera<Codec>::do_stop()
  // sampler_.Stop();
 }
 
-template <class Codec>
+template <class MeasurementTopic>
 void
-i3ds::EmulatedCamera<Codec>::do_deactivate()
+i3ds::EmulatedCamera<MeasurementTopic>::do_deactivate()
 {
   BOOST_LOG_TRIVIAL(info) << "do_deactivate()";
   cameraInterface->do_deactivate ();
@@ -209,9 +209,9 @@ i3ds::EmulatedCamera<Codec>::do_deactivate()
 // \todo should it throw if not supported or return just false?
 
 
-template <class Codec>
+template <class MeasurementTopic>
 bool
-i3ds::EmulatedCamera<Codec>::is_sampling_supported(SampleCommand sample)
+i3ds::EmulatedCamera<MeasurementTopic>::is_sampling_supported(SampleCommand sample)
 {
  // BOOST_LOG_TRIVIAL(info) << "Emulated camera with NodeID: " << node() << " is_period_supported()";
   return sample.batch_size == 1 && (0 < sample.period && sample.period <= 10000000);
@@ -224,9 +224,9 @@ i3ds::EmulatedCamera<Codec>::is_sampling_supported(SampleCommand sample)
 
 // \todo All parameter must be s at in client or thy wil default to 0. Do we need a don't care state?
 // \todo What if first parameter throws, then the second wil not be sat.
-template <class Codec>
+template <class MeasurementTopic>
 void
-i3ds::EmulatedCamera<Codec>::handle_exposure(ExposureService::Data& command)
+i3ds::EmulatedCamera<MeasurementTopic>::handle_exposure(ExposureService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "handle_exposure()";
   if(is_active() == false){
@@ -247,9 +247,9 @@ i3ds::EmulatedCamera<Codec>::handle_exposure(ExposureService::Data& command)
 
 // \todo All parameter must be sat in client or thy wil default to 0. Do we need a don't care state?
 // \todo What if first parameter throws, then the second wil not be sat.
-template <class Codec>
+template <class MeasurementTopic>
 void
-i3ds::EmulatedCamera<Codec>::handle_auto_exposure(AutoExposureService::Data& command)
+i3ds::EmulatedCamera<MeasurementTopic>::handle_auto_exposure(AutoExposureService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "handle_auto_exposure()";
   if(!(is_active() || is_operational())){
@@ -276,9 +276,9 @@ i3ds::EmulatedCamera<Codec>::handle_auto_exposure(AutoExposureService::Data& com
 
 // \todo All parameter must be sat in client or thy wil default to 0. Do we need a don't care state?
 // \todo What if first parameter throws, then the second wil not be sat.
-template <class Codec>
+template <class MeasurementTopic>
 void
-i3ds::EmulatedCamera<Codec>::handle_region(RegionService::Data& command)
+i3ds::EmulatedCamera<MeasurementTopic>::handle_region(RegionService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "handle_region()";
   if(!(is_active() || is_operational())){
@@ -298,9 +298,9 @@ i3ds::EmulatedCamera<Codec>::handle_region(RegionService::Data& command)
     }
 }
 
-template <class Codec>
+template <class MeasurementTopic>
 void
-i3ds::EmulatedCamera<Codec>::handle_flash(FlashService::Data& command)
+i3ds::EmulatedCamera<MeasurementTopic>::handle_flash(FlashService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "handle_flash()";
   if(!(is_active() || is_operational())){
@@ -319,9 +319,9 @@ i3ds::EmulatedCamera<Codec>::handle_flash(FlashService::Data& command)
     }
 }
 
-template <class Codec>
+template <class MeasurementTopic>
 void
-i3ds::EmulatedCamera<Codec>::handle_pattern(PatternService::Data& command)
+i3ds::EmulatedCamera<MeasurementTopic>::handle_pattern(PatternService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "do_pattern()";
   if(!(is_active() || is_operational())){
@@ -342,13 +342,13 @@ i3ds::EmulatedCamera<Codec>::handle_pattern(PatternService::Data& command)
     }
 }
 
-template <class Codec>
+template <class MeasurementTopic>
 bool
-i3ds::EmulatedCamera<Codec>::send_sample(unsigned char *image, unsigned long timestamp_us)
+i3ds::EmulatedCamera<MeasurementTopic>::send_sample(unsigned char *image, unsigned long timestamp_us)
 {
 
-  BOOST_LOG_TRIVIAL(info) << "EmulatedCamera::send_sample()";
- /* BOOST_LOG_TRIVIAL(info) << "Send: " << auto_exposure_enabled_ << timestamp_us;
+  BOOST_LOG_TRIVIAL(info) << "EmulatedCamera::send_sample()x";
+/* BOOST_LOG_TRIVIAL(info) << "Send: " << auto_exposure_enabled_ << timestamp_us;
   printf("frame_.image.arr: %p\n", frame_.image.arr);
   printf("image: %p\n", image);
   printf("frame_.image.nCount: %d\n",frame_.image.nCount);
@@ -372,8 +372,11 @@ i3ds::EmulatedCamera<Codec>::send_sample(unsigned char *image, unsigned long tim
 ;
 BOOST_LOG_TRIVIAL(info) << "TOF:send_sample() ";
 #endif
-
+BOOST_LOG_TRIVIAL(info) << "EmulatedCamera::send_sample()x2";
 #ifdef STEREO_CAMERA
+  BOOST_LOG_TRIVIAL(info) << "Stereo:send_sample() nCount left:right : "
+      << frame_.image_left.nCount
+      << frame_.image_right.nCount;
   memcpy(frame_.image_left.arr, image,  frame_.image_left.nCount);
   memcpy(frame_.image_right.arr, image + frame_.image_left.nCount,  frame_.image_right.nCount);
   BOOST_LOG_TRIVIAL(info) << "send_sample()"<< +frame_.image_left.arr[100]<<" "<< +frame_.image_left.arr[101];
@@ -381,21 +384,24 @@ BOOST_LOG_TRIVIAL(info) << "TOF:send_sample() ";
 
 #ifndef STEREO_CAMERA
 #ifndef TOF_CAMERA
+  BOOST_LOG_TRIVIAL(info) << "Not Special:send_sample() nCount  : "
+       << frame_.image.nCount;
   memcpy(frame_.image.arr, image,  frame_.image.nCount);
+  BOOST_LOG_TRIVIAL(info) << "Not Special:send_sample()2";
 #endif
 #endif
 
   frame_.attributes.timestamp.microseconds = timestamp_us;
   frame_.attributes.validity = sample_valid;
-  publisher_.Send<ImageMeasurement>(frame_);
+  publisher_.Send<MeasurementTopic>(frame_);
 
   return true;
 }
 
 
-template <class Codec>
+template <class MeasurementTopic>
 void
-i3ds::EmulatedCamera<Codec>::handle_configuration(ConfigurationService::Data& config) const
+i3ds::EmulatedCamera<MeasurementTopic>::handle_configuration(ConfigurationService::Data& config) const
 {
   BOOST_LOG_TRIVIAL(info) << "handle_configuration()";
 
