@@ -15,53 +15,44 @@
 
 
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
+#include "i3ds/camera_sensor.hpp"
+#include "i3ds/periodic.hpp"
 
 // Include files to use the PYLON API.
 #include <pylon/PylonIncludes.h>
 
 #include <pylon/gige/BaslerGigEInstantCamera.h>
 
-// Use sstream to create image names including integer
-#include <sstream>
 #include <thread>
 
-#include <unistd.h>
 
-
-#define BOOST_LOG_DYN_LINK
-
-#include <boost/log/core.hpp>
-#include <boost/log/trivial.hpp>
-#include <boost/log/expressions.hpp>
-
-#undef BOOST_LOG_TRIVIAL
-#define BOOST_LOG_TRIVIAL(info) cout
 
 // Namespace for using pylon objects.
-using namespace Pylon;
+//using namespace Pylon;
 
-// Namespace for using GenApi objects
-using namespace GenApi;
 
-// Namespace for using opencv objects.
-using namespace cv;
+// Does sampling operation, returns true if more samples are requested.
+typedef std::function<bool(unsigned char *image, unsigned long timestamp_us)> Operation;
 
-// Namespace for using cout.
-using namespace std;
 
 class BaslerHighResInterface
 {
 public:
 
-  BaslerHighResInterface();
+  BaslerHighResInterface(const char *connectionString, const char *camera_name, Operation operation);
   void initialiseCamera();
   void stopSampling();
   void startSamplingLoop();
   void startSampling();
   void openForParameterManipulation();
   void closeForParameterManipulation();
+  void do_activate();
+  void do_start();
+  void do_stop();
+  void do_deactivate();
+
+  void connect();
+
 
   void setGain (int64_t value);
   int64_t getGain ();
@@ -80,17 +71,17 @@ public:
   int64_t getMaxShutterTime();
   void setMaxShutterTime(int64_t);
 
-#if 0
+
   void setRegion(PlanarRegion region);
   PlanarRegion getRegion();
-#endif
+
 
   bool getAutoExposureEnabled ();
   void setAutoExposureEnabled (bool enabled);
 
 private:
 
-  CInstantCamera *camera;
+  Pylon::CBaslerGigEInstantCamera *camera;
 
   // Automagically call PylonInitialize and PylonTerminate to ensure the pylon runtime system
   // is initialized during the lifetime of this object.
@@ -98,8 +89,11 @@ private:
 
   std::thread threadSamplingLoop;
 
-  CBaslerGigEInstantCamera *cameraParameters;
+  const char *cameraName;
 
+  // Sample operation.
+   Operation operation_;
+   char *ConnectionID;
 
 };
 

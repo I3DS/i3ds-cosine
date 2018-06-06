@@ -45,7 +45,7 @@
 class EbusCameraInterface: protected PvDeviceEventSink {
 
   public:
-    EbusCameraInterface(const char *connectionString, Operation operation);
+    EbusCameraInterface(const char *connectionString, const char *camera_name, Operation operation);
 
     bool connect();
     void collectParameters();

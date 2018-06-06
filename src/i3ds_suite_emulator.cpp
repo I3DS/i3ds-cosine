@@ -27,19 +27,15 @@
 
 
 
-// #define DEFAULT_NODE_ID 12
-// #define DEFAULT_IP_ADDRESS "10.0.1.11"
-#define DEFAULT_CAMERA_NAME "Morten"
-
 namespace po = boost::program_options;
 namespace logging = boost::log;
 
 #ifdef STEREO_CAMERA
- i3ds::EmulatedCamera<i3ds::StereoCameraMeasurement8MCodec> *camera;
+ i3ds::EmulatedCamera<i3ds::StereoMonoFrame8MCodec> *camera;
 #endif
 
 #ifdef HR_CAMERA
-  i3ds::EmulatedCamera<i3ds::CameraMeasurement8MCodec> *camera;
+  i3ds::EmulatedCamera<i3ds::MonoFrame8MCodec> *camera;
 #endif
 
 #ifdef TOF_CAMERA
@@ -50,7 +46,7 @@ namespace logging = boost::log;
 #ifndef STEREO_CAMERA
 #ifndef HR_CAMERA
 #ifndef TOF_CAMERA
- i3ds::EmulatedCamera<i3ds::CameraMeasurement4MCodec> *camera;
+ i3ds::EmulatedCamera<i3ds::MonoFrame4MCodec> *camera;
 #endif
 #endif
 #endif
@@ -75,17 +71,7 @@ int main(int argc, char** argv)
 	    ("help,h", "Produce this message")
 	    ("node,n", po::value<unsigned int>(&node_id)->default_value(DEFAULT_NODE_ID), "Node ID of camera")
 	    ("ip-address,i", po::value<std::string>(&ip_address)->default_value(DEFAULT_IP_ADDRESS), "Use IP Address of camera to connect")
-	    ("camera-name,c", po::value<std::string>(&camera_name)->default_value(DEFAULT_CAMERA_NAME), "(Not implemented yet.) Connect via User Name of Camera")
-	    ("device,d",
-		po::value <std::vector<std::string>>(),
-		"Which camera to connect to.\n"
-		"May be [camera name | ipadress | mac adress]\n"
-		"Actual name and IP adresses at the moment:\n"
-		"\ti3ds-thermal:  10.0.1.111\n"
-		"\t[no name set]: 10.0.1.115\n"
-		"\ti3ds-highres:  10.0.1.116\n"
-		"\ti3ds-stereo:   10.0.1.117\n"
-	    )
+	    ("camera-name,c", po::value<std::string>(&camera_name)->default_value(DEFAULT_CAMERA_NAME), "Connect via FriendlyName(UserDefinedName) of Camera")
 
 
 	    ("verbose,v", "Print verbose output")
@@ -101,15 +87,14 @@ int main(int argc, char** argv)
 	      std::cout << desc << std::endl;
 	      return -1;
 	    }
-
-	  if (vm.count("device"))
-	    {// i3ds::EmulatedCamera<i3ds::StereoCameraMeasurement8MCodec> camera(context, 10, 800, 600);
+/*
+	  if (vm.count("camera-name"))
+	    {
 	      std::string s;
-	      s = vm["device"].as< std::vector<std::string>>().front();
+	      s = vm["camera-name"].as< std::vector<std::string>>().front();
 	      std::cout << "Using device: "<< s << std::endl;
-	      //return -1;
 	    }
-
+*/
 	  if (vm.count("quite"))
 	    {
 	      logging::core::get()->set_filter(logging::trivial::severity >= logging::trivial::warning);
@@ -140,7 +125,7 @@ int main(int argc, char** argv)
 
 
 	  BOOST_LOG_TRIVIAL(info) << "test1a";
-	  BOOST_LOG_TRIVIAL(info) << "Using IP ADDRESS: " << ip_address;
+
 
   i3ds::Context::Ptr context = i3ds::Context::Create();;
 
@@ -157,32 +142,28 @@ int main(int argc, char** argv)
   //i3ds::EmulatedCamera<i3ds::CameraMeasurement4MCodec> camera(context, 10, 800, 600);
   //camera = new i3ds::EmulatedCamera<i3ds::CameraMeasurement8MCodec>(context, 10, 800, 600);
   //i3ds::EmulatedCamera<i3ds::StereoCameraMeasurement4MCodec> camera(context, 10, 800, 600);
-  BOOST_LOG_TRIVIAL(info) << "test1aaaaa";
+  BOOST_LOG_TRIVIAL(info) << "Before inst";
 
-//#define EBUS_CAMERA
-//#define STEREO_CAMERA 1
-//#define TOF_CAMERA
-//#define BASLER_HIGH_RES_CAMERA
 
 
 
 #ifdef HR_CAMERA
-  camera = new i3ds::EmulatedCamera<i3ds::CameraMeasurement8MCodec>(context, node_id, 800, 600, ip_address);
+  camera = new i3ds::EmulatedCamera<i3ds::MonoFrame8MCodec>(context, node_id, 800, 600, ip_address, camera_name);
 #endif
 
 #ifdef TOF_CAMERA
-camera = new i3ds::EmulatedCamera<i3ds::ToFMeasurement500KCodec>(context, node_id, 800, 600, ip_address);
+camera = new i3ds::EmulatedCamera<i3ds::ToFMeasurement500KCodec>(context, node_id, 800, 600, ip_address, camera_name);
 #endif
 
 #ifdef STEREO_CAMERA
-camera = new i3ds::EmulatedCamera<i3ds::StereoCameraMeasurement8MCodec>(context, node_id, 800, 600, ip_address);
+camera = new i3ds::EmulatedCamera<i3ds::StereoFrame8MCodec>(context, node_id, 800, 600, ip_address, camera_name);
 #endif
 
 
 #ifndef TOF_CAMERA
 #ifndef HR_CAMERA
 #ifndef STEREO_CAMERA
-camera = new i3ds::EmulatedCamera<i3ds::CameraMeasurement4MCodec>(context, node_id, 800, 600, ip_address);
+camera = new i3ds::EmulatedCamera<i3ds::MonoFrame4MCodec>(context, node_id, 800, 600, ip_address, camera_name);
 #endif
 #endif
 #endif

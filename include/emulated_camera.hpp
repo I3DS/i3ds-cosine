@@ -36,11 +36,15 @@
 #ifdef EBUS_CAMERA
 #include "ebus_camera_interface.hpp"
 #endif
+
+#ifdef BASLER_CAMERA
 #ifdef TOF_CAMERA
 #include "basler_tof_interface.hpp"
 #endif
-#ifdef BASLER_HIGH_RES_CAMERA
-#include "basler_high_res_camera_interface.hpp"
+
+#ifdef HR_CAMERA
+#include "basler_high_res_interface.hpp"
+#endif
 #endif
 
 namespace i3ds
@@ -54,7 +58,7 @@ public:
   //typedef Topic<128, CameraMeasurement4MCodec> ImageMeasurement;
   typedef Topic<128, Codec> ImageMeasurement;
 
-  EmulatedCamera(Context::Ptr context, NodeID id, int resx, int resy, std::string ipAddress);
+  EmulatedCamera(Context::Ptr context, NodeID id, int resx, int resy, std::string ipAddress, std::string camera_name);
   virtual ~EmulatedCamera();
 
   // Getters.
@@ -71,7 +75,9 @@ public:
   virtual PatternSequence pattern_sequence() const {return pattern_sequence_;}
 
   // Supported rate.
-  virtual bool is_rate_supported(SampleRate rate);
+  //virtual bool is_rate_supported(SampleRate rate);
+
+  virtual bool is_sampling_supported(SampleCommand sample);
 
 protected:
 
@@ -115,12 +121,15 @@ private:
 #ifdef EBUS_CAMERA
   EbusCameraInterface * cameraInterface;
 #endif
-#ifdef BASLER_HIGH_RES_CAMERA
-  BaslerHighResCamera * cameraInterface;
+
+#ifdef BASLER_CAMERA
+#ifdef HR_CAMERA
+  BaslerHighResInterface * cameraInterface;
 #endif
 
 #ifdef TOF_CAMERA
   Basler_ToF_Interface * cameraInterface;
+#endif
 #endif
 
   void handle_configuration(ConfigurationService::Data& config) const;

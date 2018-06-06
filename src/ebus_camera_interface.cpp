@@ -36,11 +36,14 @@ namespace logging = boost::log;
 
 int gStop;
 
-EbusCameraInterface::EbusCameraInterface(const char *connectionString, Operation operation)
+EbusCameraInterface::EbusCameraInterface(const char *connectionString, const char *camera_name, Operation operation)
 : operation_(operation)
 {
+    
   BOOST_LOG_TRIVIAL (info) << "EbusCameraInterface constructor";
-  mConnectionID = PvString(connectionString);
+  mConnectionID = PvString(camera_name);
+  
+  //mConnectionID = PvString(connectionString); // Similar to use different connection strings 
   BOOST_LOG_TRIVIAL (info) << "Connection String: "<< mConnectionID.GetAscii ();
 
 }
@@ -198,6 +201,7 @@ EbusCameraInterface::getMaxParameter (PvString whichParameter)
 }
 
 char *
+
 EbusCameraInterface::getEnum (PvString whichParameter)
 {
 
@@ -671,11 +675,13 @@ EbusCameraInterface::do_start ()
 bool
 EbusCameraInterface::OpenStream ()
 {
-  BOOST_LOG_TRIVIAL (info) << "--> OpenStream";
+  BOOST_LOG_TRIVIAL (info) << "--> OpenStream: "<< mConnectionID.GetAscii ();
 
   // Creates and open the stream object based on the selected device.
-  PvResult lResult = PvResult::Code::INVALID_PARAMETER;
+  PvResult lResult = PvResult::Code::INVALID_PARAMETER; 
+  mConnectionID = PvString("10.0.1.116");
   mStream = PvStream::CreateAndOpen (mConnectionID, &lResult);
+  //mStream = PvStream::CreateAndOpen (*mDevice, &lResult);
   if (!lResult.IsOK ())
     {
       BOOST_LOG_TRIVIAL (info) << "Unable to open the stream";

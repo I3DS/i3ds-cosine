@@ -12,16 +12,17 @@
 #include <sstream>
 
 
-//#include "../include/emulated_camera.hpp"
-
-
+#ifdef BASLER_CAMERA
 #ifdef TOF_CAMERA
-#include "../include/basler_tof_interface.hpp"
+#include "basler_tof_interface.hpp"
 #endif
 
-#ifdef BASLER_HIGH_RES_CAMERA
-#include "../include/Basler_highres_camera_interface.hpp"
+
+#ifdef HR_CAMERA
+#include "../include/basler_high_res_interface.hpp"
 #endif
+#endif
+
 
 #ifdef EBUS_CAMERA
 #include "../include/ebus_camera_interface.hpp"
@@ -45,7 +46,8 @@ namespace logging = boost::log;
 
 
 template <class Codec>
-i3ds::EmulatedCamera<Codec>::EmulatedCamera(Context::Ptr context, NodeID node, int resx, int resy, std::string ipAddress)
+i3ds::EmulatedCamera<Codec>::EmulatedCamera(Context::Ptr context, NodeID node, int resx, int resy,
+					     std::string ipAddress, std::string camera_name)
   : Camera(node),
     resx_(resx),
     resy_(resy),
@@ -53,9 +55,9 @@ i3ds::EmulatedCamera<Codec>::EmulatedCamera(Context::Ptr context, NodeID node, i
    // sampler_(std::bind(&i3ds::EmulatedCamera::send_sample, this, std::placeholders::_1)),
     publisher_(context, node)
 {
-  BOOST_LOG_TRIVIAL(info) << "test1a";
+  BOOST_LOG_TRIVIAL(info) << "EmulatedCamera::EmulatedCamera()";
 #ifdef EBUS_CAMERA
-  cameraInterface = new EbusCameraInterface(ipAddress.c_str(),
+  cameraInterface = new EbusCameraInterface(ipAddress.c_str(), camera_name.c_str(),
   						std::bind(&i3ds::EmulatedCamera<Codec>::send_sample, this,
   							  std::placeholders::_1, std::placeholders::_2));
  /* cameraInterface = new EbusCameraInterface("10.0.1.117",
@@ -65,17 +67,20 @@ i3ds::EmulatedCamera<Codec>::EmulatedCamera(Context::Ptr context, NodeID node, i
 
 #endif
 
-#ifdef BASLER_HIGH_RES_CAMERA
-  ;
+#ifdef BASLER_CAMERA
+#ifdef HR_CAMERA
+  cameraInterface = new BaslerHighResInterface(ipAddress.c_str(), camera_name.c_str(),
+   						std::bind(&i3ds::EmulatedCamera<Codec>::send_sample, this,
+ 							  std::placeholders::_1, std::placeholders::_2));
 #endif
 
 
 #ifdef TOF_CAMERA
-  cameraInterface = new Basler_ToF_Interface(ipAddress.c_str(),
+  cameraInterface = new Basler_ToF_Interface(	ipAddress.c_str(),camera_name.c_str(),
   						std::bind(&i3ds::EmulatedCamera<Codec>::send_sample, this,
-							  std::placeholders::_1, std::placeholders::_2));
+				std::placeholders::_1, std::placeholders::_2));
 #endif
-
+#endif
 
 
 
@@ -203,15 +208,19 @@ i3ds::EmulatedCamera<Codec>::do_deactivate()
 
 // \todo should it throw if not supported or return just false?
 
+
 template <class Codec>
 bool
-i3ds::EmulatedCamera<Codec>::is_rate_supported(SampleRate rate)
+i3ds::EmulatedCamera<Codec>::is_sampling_supported(SampleCommand sample)
 {
-  BOOST_LOG_TRIVIAL(info) << "is_rate_supported()" << rate;
-  cameraInterface->checkTriggerInterval(rate);
-  //rate_ = rate;
-  return 0 < rate && rate <= 10000000;
+ // BOOST_LOG_TRIVIAL(info) << "Emulated camera with NodeID: " << node() << " is_period_supported()";
+  return sample.batch_size == 1 && (0 < sample.period && sample.period <= 10000000);
+  //BOOST_LOG_TRIVIAL(info) << "is_rate_supported()" << rate;
+  //cameraInterface->checkTriggerInterval(rate);
+    //rate_ = rate;
+  //return 0 < rate && rate <= 10000000;
 }
+
 
 // \todo All parameter must be s at in client or thy wil default to 0. Do we need a don't care state?
 // \todo What if first parameter throws, then the second wil not be sat.
@@ -338,8 +347,8 @@ bool
 i3ds::EmulatedCamera<Codec>::send_sample(unsigned char *image, unsigned long timestamp_us)
 {
 
-  /*BOOST_LOG_TRIVIAL(info) << "send_sample()";
-  BOOST_LOG_TRIVIAL(info) << "Send: " << auto_exposure_enabled_ << timestamp_us;
+  BOOST_LOG_TRIVIAL(info) << "EmulatedCamera::send_sample()";
+ /* BOOST_LOG_TRIVIAL(info) << "Send: " << auto_exposure_enabled_ << timestamp_us;
   printf("frame_.image.arr: %p\n", frame_.image.arr);
   printf("image: %p\n", image);
   printf("frame_.image.nCount: %d\n",frame_.image.nCount);
@@ -361,7 +370,7 @@ i3ds::EmulatedCamera<Codec>::send_sample(unsigned char *image, unsigned long tim
   //memcpy(frame_.image.distances, image,  frame_.image.nCount);
   //memcpy(frame_.image.validity, image,  frame_.image.nCount);
 ;
-
+BOOST_LOG_TRIVIAL(info) << "TOF:send_sample() ";
 #endif
 
 #ifdef STEREO_CAMERA

@@ -46,9 +46,11 @@ using namespace std;
 
 // TODO Check Throwing in sampling loop. May be the errorhandling should return and set a global flag as in example.?
 
-Basler_ToF_Interface::Basler_ToF_Interface (const char *connectionString,
+Basler_ToF_Interface::Basler_ToF_Interface (const char *connectionString, const char * camera_name,
 					    Operation operation) :
-    mConnectionID (connectionString), operation_ (operation)
+    mConnectionID (connectionString),
+    camera_name(camera_name),
+    operation_ (operation)
 {
   cout << "Basler_ToF_Interface constructor\n";
   cout << "Connection String: " << mConnectionID << "\n";
@@ -283,7 +285,13 @@ Basler_ToF_Interface::do_activate ()
 
       // Example: Open a camera using its IP address
       // CToFCamera::Open( IpAddress, "10.0.1.110" );
-      m_Camera.Open (IpAddress, "10.0.1.110");
+      //m_Camera.Open (IpAddress, "10.0.1.110");
+      
+      m_Camera.Open (UserDefinedName, camera_name);
+      
+      
+      
+      
       /*
        Instead of the IP address, any other property of the CameraInfo struct can be used,
        e.g., the serial number or the user-defined name:
@@ -355,7 +363,7 @@ Basler_ToF_Interface::do_stop ()
       threadSamplingLoop.join ();
       cout << "did join()\n";
     }
-  m_Camera.Close();
+ // m_Camera.Close();
 }
 
 void Basler_ToF_Interface::do_deactivate (){
@@ -366,7 +374,7 @@ void Basler_ToF_Interface::do_deactivate (){
 void
 Basler_ToF_Interface::StartSamplingLoop ()
 {
-  cout << "startSamplingLoop()\n";
+  cout << "startSamplingLoopx()\n";
   try
     {
       m_nBuffersGrabbed = 0;
@@ -429,7 +437,8 @@ Basler_ToF_Interface::onImageGrabbed (GrabResult grabResult, BufferParts parts)
       uint16_t *pIntensity = (uint16_t*) parts[1].pData + y * width + x;
       uint16_t *pConfidence = (uint16_t*) parts[2].pData + y * width + x;
 
-      cout << "Center pixel of image " << setw (2) << m_nBuffersGrabbed << ": ";
+      cout << "BASLERTOF::before operationXXXYYYYYY" << endl;
+      cout << "Center pixelc of image " << setw (2) << m_nBuffersGrabbed << ": ";
       cout.setf (ios_base::fixed);
       cout.precision (1);
       if (p3DCoordinate->IsValid ())
@@ -437,11 +446,15 @@ Basler_ToF_Interface::onImageGrabbed (GrabResult grabResult, BufferParts parts)
 	    << p3DCoordinate->y << " z=" << setw (6) << p3DCoordinate->z;
       else
 	cout << "x=   n/a y=   n/a z=   n/a";
+      
+      
       cout << " intensity=" << setw (5) << *pIntensity << " confidence="
 	  << setw (5) << *pConfidence << endl;
       
+      cout << "BASLERTOF::before operationXXX" << endl;
       clock::time_point next = clock::now();
-      operation_((unsigned char *)&parts, std::chrono::duration_cast<std::chrono::microseconds>(next.time_since_epoch()).count());
+      cout << "BASLERTOF::before operation" << endl;
+     // operation_((unsigned char *)&parts, std::chrono::duration_cast<std::chrono::microseconds>(next.time_since_epoch()).count());
 
       
       
