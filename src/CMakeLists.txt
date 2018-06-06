@@ -191,7 +191,8 @@ add_executable (PleoraTir i3ds_suite_emulator.cpp ${SRCS})
 #PLEORA Stereo
   add_executable (PleoraStereo i3ds_suite_emulator.cpp ${SRCS})
   target_include_directories(PleoraStereo PRIVATE ${PLEORA_INCLUDE_DIRECTORIES})
-  target_compile_definitions(PleoraStereo PRIVATE BASLER_TOF_CXX_FLAGSSTEREO_CAMERA=1 EBUS_CAMERA=1 DEFAULT_NODE_ID=17 DEFAULT_IP_ADDRESS="10.0.1.117" DEFAULT_CAMERA_NAME="i3ds-stereo")
+  target_compile_definitions(PleoraStereo PRIVATE BASLER_TOF_CXX_FLAG STEREO_CAMERA=1 
+    EBUS_CAMERA=1 DEFAULT_NODE_ID=17 DEFAULT_IP_ADDRESS="10.0.1.117" DEFAULT_CAMERA_NAME="i3ds-stereo")
   target_compile_options(PleoraStereo PRIVATE -Wno-unknown-pragmas)
   target_link_libraries (PleoraStereo ${PROTOBUF_LIBRARY} -L${PUREGEV_ROOT}/lib/ ${PLEORA_LIBS} ${LIBS} ${Boost_LIBRARIES})
   install(TARGETS PleoraStereo DESTINATION bin)
