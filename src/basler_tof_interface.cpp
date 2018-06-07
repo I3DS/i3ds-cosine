@@ -1,23 +1,3 @@
-/*
- Access to ToF cameras is provided by a GenICam-compliant GenTL Producer. A GenTL Producer is a dynamic library
- implementing a standardized software interface for accessing the camera.
-
- The software interacting with the GentL Producer is called a GenTL Consumer. Using this terminology,
- this sample is a GenTL Consumer, too.
-
- As part of the suite of sample programs, Basler provides the ConsumerImplHelper C++ template library that serves as
- an implementation helper for GenTL consumers.
-
- The GenICam GenApi library is used to access the camera parameters.
-
- For more details about GenICam, GenTL, and GenApi, refer to the http://www.emva.org/standards-technology/genicam/ website.
- The GenICam GenApi standard document can be downloaded from http://www.emva.org/wp-content/uploads/GenICam_Standard_v2_0.pdf
- The GenTL standard document can be downloaded from http://www.emva.org/wp-content/uploads/GenICam_GenTL_1_5.pdf
-
- This sample illustrates how to grab images from a ToF camera and how to access the image and depth data.
-
- The GenApi sample, which is part of the Basler ToF samples, illustrates in more detail how to configure a camera.
- */
 
 #include <ConsumerImplHelper/ToFCamera.h>
 #include <iostream>
@@ -47,9 +27,10 @@ using namespace std;
 // TODO Check Throwing in sampling loop. May be the errorhandling should return and set a global flag as in example.?
 
 Basler_ToF_Interface::Basler_ToF_Interface (const char *connectionString, const char * camera_name,
-					    Operation operation) :
+					    bool free_running, Operation operation) :
     mConnectionID (connectionString),
     camera_name(camera_name),
+    free_running_(free_running),
     operation_ (operation)
 {
   cout << "Basler_ToF_Interface constructor\n";
@@ -131,9 +112,9 @@ Basler_ToF_Interface::getRegion ()
   GenApi::CIntegerPtr ptrHeight (m_Camera.GetParameter ("Height"));
   GenApi::CIntegerPtr ptrOffsetX (m_Camera.GetParameter ("OffsetX"));
   GenApi::CIntegerPtr ptrOffsetY (m_Camera.GetParameter ("OffsetY"));
-  int64_t size_x = ptrWidth->GetValue (); //    getParameter ("Width");
-  int64_t size_y = ptrHeight->GetValue (); // getParameter ("Height");
-  int64_t offset_x = ptrOffsetX->GetValue (); //getParameter ("OffsetY");
+  int64_t size_x = ptrWidth->GetValue (); 
+  int64_t size_y = ptrHeight->GetValue (); 
+  int64_t offset_x = ptrOffsetX->GetValue (); 
   int64_t offset_y = ptrOffsetY->GetValue (); //getParameter ("RegionHeight");
   
   PlanarRegion region;
@@ -160,16 +141,24 @@ Basler_ToF_Interface::setTriggerInterval (int64_t sampleRate)
 }
 
 
-//// TODO Float conversion
-/// And scale
+float 
+Basler_ToF_Interface::getSamplingsRate()
+{
+  GenApi::CFloatPtr ptrTriggerInterval (m_Camera.GetParameter ("AcquisitionFrameRate"));
+  return  ptrTriggerInterval->GetValue();
+}
+
+
 bool
-Basler_ToF_Interface::checkTriggerInterval (int64_t rate)
+Basler_ToF_Interface::checkTriggerInterval (int64_t period)  // period is in us, camera operates in Hz
 {
 
+  float wished_rate_in_Hz = 1e6/period; 
   GenApi::CFloatPtr ptrTriggerInterval (m_Camera.GetParameter ("AcquisitionFrameRate"));
-  float maxRate = ptrTriggerInterval->GetMax();
-  float minRate = ptrTriggerInterval->GetMin();
-  if((rate >= minRate) && rate >= maxRate){
+  float max_rate_Hz = ptrTriggerInterval->GetMax();
+  float min_rate_Hz = ptrTriggerInterval->GetMin();
+  if((wished_rate_in_Hz <= min_rate_Hz) && wished_rate_in_Hz <= max_rate_Hz){
+      samplingsRate_in_Hz_ = wished_rate_in_Hz;
       return true;
   }
   else
@@ -210,6 +199,27 @@ Basler_ToF_Interface::setAutoExposureEnabled (bool value)
     }
 }
 
+
+
+
+void
+Basler_ToF_Interface::setTriggerModeOn (bool value)
+{
+  GenApi::CEnumerationPtr ptrAutoExposureEnabled (m_Camera.GetParameter ("TriggerMode"));
+  if(value == true)
+    {
+      ptrAutoExposureEnabled->FromString("On");
+    }
+  else
+    {
+      ptrAutoExposureEnabled->FromString("Off");
+    }
+}
+
+
+
+
+
 /// \TODO Not found?
 int64_t
 Basler_ToF_Interface::getGain ()
@@ -225,17 +235,18 @@ Basler_ToF_Interface::setGain (int64_t value)
 
 }
 
-
+// Not used in ToF camera
 void
 Basler_ToF_Interface::setRegionEnabled (bool regionEnabled)
 {
-
+  return;
 }
 
+// Used in tof Camera
 bool
 Basler_ToF_Interface::getRegionEnabled ()
 {
-  return false;
+  return true;
 }
 
 
@@ -296,7 +307,7 @@ Basler_ToF_Interface::do_activate ()
        Instead of the IP address, any other property of the CameraInfo struct can be used,
        e.g., the serial number or the user-defined name:
 
-       CToFCamera::Open( SerialNumber, "23167572" );
+       CToFCamera::O  return -1pen( SerialNumber, "23167572" );
        CToFCamera::Open( UserDefinedName, "Left" );
        */
 
@@ -325,6 +336,12 @@ Basler_ToF_Interface::do_activate ()
 
       ptrComponentSelector->FromString ("Confidence");
       ptrComponentEnable->SetValue (true);
+      
+      
+      
+      samplingsRate_in_Hz_ = getSamplingsRate();
+      
+      
     }
   catch (const GenICam::GenericException& e)
     {
@@ -344,13 +361,40 @@ Basler_ToF_Interface::do_activate ()
 
 }
 
+
+
 void
 Basler_ToF_Interface::do_start ()
 {
   cout << "do_start()\n";
+  if(free_running_)
+    {
+      setTriggerModeOn(false);
+      setTriggerInterval(samplingsRate_in_Hz_);
+      
+    }
+  else
+    {
+      setTriggerModeOn(true);
+      setTriggerSourceToLine1();
+    }
+  
+  
+  
   threadSamplingLoop = std::thread (&Basler_ToF_Interface::StartSamplingLoop,
 				    this);
 }
+
+
+
+void 
+Basler_ToF_Interface::setTriggerSourceToLine1()
+{
+  GenApi::CEnumerationPtr ptrAutoExposureEnabled (m_Camera.GetParameter ("TriggerSource"));
+
+      ptrAutoExposureEnabled->FromString("Line1");
+}
+
 
 void
 Basler_ToF_Interface::do_stop ()

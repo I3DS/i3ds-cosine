@@ -33,7 +33,7 @@ class Basler_ToF_Interface
   //typedef Topic<128, ToFMeasurement500KCodec> ToFMeasurement;
 
     void Basler_ToF_Interface2 ();
-    Basler_ToF_Interface(const char *connectionString, const char *camera_name, Operation operation);
+    Basler_ToF_Interface(const char *connectionString, const char *camera_name, bool free_running, Operation operation);
     ~Basler_ToF_Interface ();
     void do_activate();
     void do_start();
@@ -63,6 +63,11 @@ class Basler_ToF_Interface
     int64_t getMaxShutterTime();
     void setMaxShutterTime(int64_t);
 
+
+    float getSamplingsRate();
+    void setTriggerSourceToLine1();
+    void setTriggerModeOn (bool value);
+
     bool connect();
 
 
@@ -78,9 +83,9 @@ class Basler_ToF_Interface
     const char * mConnectionID;
     const char * camera_name;
 
-
-    // Sample operation.
+    bool free_running_;
     Operation operation_;
+    float samplingsRate_in_Hz_;
 
 
     typedef std::chrono::high_resolution_clock clock;

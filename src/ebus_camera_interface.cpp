@@ -36,8 +36,8 @@ namespace logging = boost::log;
 
 int gStop;
 
-EbusCameraInterface::EbusCameraInterface(const char *connectionString, const char *camera_name, Operation operation)
-: operation_(operation)
+EbusCameraInterface::EbusCameraInterface(const char *connectionString, const char *camera_name, bool free_running, Operation operation)
+: ip_address_(connectionString), free_running_(free_running), operation_(operation)
 {
     
   BOOST_LOG_TRIVIAL (info) << "EbusCameraInterface constructor";
@@ -47,6 +47,8 @@ EbusCameraInterface::EbusCameraInterface(const char *connectionString, const cha
   BOOST_LOG_TRIVIAL (info) << "Connection String: "<< mConnectionID.GetAscii ();
 
 }
+
+
 
 bool
 EbusCameraInterface::connect ()
@@ -72,7 +74,13 @@ EbusCameraInterface::connect ()
   mConnectionLost = false;
   BOOST_LOG_TRIVIAL (info) << "Connected to Camera";
 
+  PvDeviceGEV* lDeviceGEV = dynamic_cast<PvDeviceGEV*> (mDevice);
+  fetched_ipaddress = lDeviceGEV->GetIPAddress();
+  BOOST_LOG_TRIVIAL (info) << "IP ADDRESS got from camera" << fetched_ipaddress.GetAscii();
+  
+  
   collectParameters ();
+  trigger_interval_value_ = getParameter ("TriggerInterval");
   return true;
 }
 
@@ -200,8 +208,8 @@ EbusCameraInterface::getMaxParameter (PvString whichParameter)
 
 }
 
-char *
 
+char *
 EbusCameraInterface::getEnum (PvString whichParameter)
 {
 
@@ -465,6 +473,7 @@ EbusCameraInterface::setSourceBothStreams()
 
 
 
+
 // Todo This is actually a boolean!!!!
 bool
 EbusCameraInterface::getAutoExposureEnabled ()
@@ -551,17 +560,51 @@ EbusCameraInterface::getRegion ()
   return region;
 }
 
+
+#ifdef HR_CAMERA
+const int trigger_interval_factor = 2;
+
+#elif defined(STEREO_CAMERA)
+const int trigger_interval_factor = 30;
+#else
+// The TIR Camera
+const int trigger_interval_factor = 30;
+#endif
+
+
+
 void
-EbusCameraInterface::setTriggerInterval (int64_t value)
+EbusCameraInterface::setTriggerInterval ()
 {
-  BOOST_LOG_TRIVIAL (info) << "Set TriggerInterval: " << value;
+  BOOST_LOG_TRIVIAL (info) << "Set TriggerInterval: trigger_interval_value_: " << trigger_interval_value_; 
+  setIntParameter ("TriggerInterval", trigger_interval_value_);
 }
 
+
+
 bool
-EbusCameraInterface::checkTriggerInterval (int64_t value)
+EbusCameraInterface::checkTriggerInterval (int64_t period_us)
 {
-  BOOST_LOG_TRIVIAL (info) << "Check TriggerInterval: " << value;
-  return true;
+  BOOST_LOG_TRIVIAL (info) << "Check TriggerInterval: Period: " << period_us;
+  
+  int trigger_interval_value = period_us/(1e6*trigger_interval_factor);
+  
+
+   double min =  getMinParameter ("Triggerinterval");
+   double max =  getMaxParameter ("Triggerinterval");
+   BOOST_LOG_TRIVIAL (info) << "checkTriggerInterval: min: " << min << " max:" << max;
+   BOOST_LOG_TRIVIAL (info) << "Triggerinterval value tested: "<< min << trigger_interval_value;
+
+   if(trigger_interval_value < min || trigger_interval_value > max)
+     {
+       BOOST_LOG_TRIVIAL (info) << "checkTriggerInterval out of range";
+       return false;
+     }
+   BOOST_LOG_TRIVIAL (info) << "Triggerinterval OK";
+   trigger_interval_value_ = trigger_interval_value;
+   return true;
+  
+
 }
 
 void
@@ -570,6 +613,7 @@ EbusCameraInterface::setShutterTime (int64_t value)
   BOOST_LOG_TRIVIAL (info) << "SetShutterTime (ShutterTimeValue): " << value;
   setIntParameter ("ShutterTimeValue", value);
 }
+
 
 
 void
@@ -656,10 +700,15 @@ EbusCameraInterface::do_start ()
   PV_SAMPLE_INIT ();
   BOOST_LOG_TRIVIAL (info) << "--> EbusCameraInterface::do_start";
   // Set some parameters to be able to stream continuous
-  setEnum ("AcquisitionMode", "Continuous");
-  setEnum ("TriggerMode", "Interval");
-  setIntParameter ("TriggerInterval", 2);
-
+  if(free_running_){
+      setEnum ("AcquisitionMode", "Continuous");
+      setEnum ("TriggerMode", "Interval");
+      setIntParameter ("TriggerInterval", trigger_interval_value_);
+  }
+  else{
+      setEnum ("AcquisitionMode", "SingleFrame");
+      setEnum ("TriggerMode", "EXT");
+  }
   stopSamplingLoop = false;
   threadSamplingLoop = std::thread(&EbusCameraInterface::StartSamplingLoop, this);
 
@@ -679,9 +728,11 @@ EbusCameraInterface::OpenStream ()
 
   // Creates and open the stream object based on the selected device.
   PvResult lResult = PvResult::Code::INVALID_PARAMETER; 
-  mConnectionID = PvString("10.0.1.116");
-  mStream = PvStream::CreateAndOpen (mConnectionID, &lResult);
-  //mStream = PvStream::CreateAndOpen (*mDevice, &lResult);
+  
+  BOOST_LOG_TRIVIAL (info) << "--> OpenStream: "<<":"<<ip_address_<<":"
+      << mConnectionID.GetAscii ()<<":"<<fetched_ipaddress.GetAscii();
+  
+  mStream = PvStream::CreateAndOpen (fetched_ipaddress.GetAscii(), &lResult);
   if (!lResult.IsOK ())
     {
       BOOST_LOG_TRIVIAL (info) << "Unable to open the stream";

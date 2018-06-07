@@ -45,7 +45,7 @@
 class EbusCameraInterface: protected PvDeviceEventSink {
 
   public:
-    EbusCameraInterface(const char *connectionString, const char *camera_name, Operation operation);
+    EbusCameraInterface(const char *connectionString, const char *camera_name, bool free_running, Operation operation);
 
     bool connect();
     void collectParameters();
@@ -59,6 +59,7 @@ class EbusCameraInterface: protected PvDeviceEventSink {
     bool getBooleanParameter(PvString whichParameter);
 
 
+    char * getString(PvString whichParameter);
 
     char * getEnum(PvString whichParameter);
     void setEnum(PvString whichParameter, PvString value, bool dontCheckParameter = false);
@@ -83,7 +84,7 @@ class EbusCameraInterface: protected PvDeviceEventSink {
     bool getRegionEnabled();
 
 
-    void setTriggerInterval(int64_t);
+    void setTriggerInterval();
     bool checkTriggerInterval(int64_t);
 
 
@@ -134,9 +135,15 @@ class EbusCameraInterface: protected PvDeviceEventSink {
     bool stopSamplingLoop;
     std::thread threadSamplingLoop;
 
-    // Sample operation.
+    const char *ip_address_;
+
+
+     PvString fetched_ipaddress;
+     bool free_running_;
      Operation operation_;
 
+
+     int trigger_interval_value_;
 
     typedef std::chrono::high_resolution_clock clock;
 

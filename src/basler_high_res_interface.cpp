@@ -8,8 +8,13 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////
 
+#undef SHOW_IMAGE
+//#define SHOW_IMAGE
+
+#ifdef SHOW_IMAGE
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#endif
 
 // Include files to use the PYLON API.
 #include <pylon/PylonIncludes.h>
@@ -18,14 +23,11 @@
 
 
 #include <thread>
+#include <chrono>
 
 
 
 #include "../include/basler_high_res_interface.hpp"
-
-
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
 
 
 
@@ -37,17 +39,17 @@
 #include <boost/log/expressions.hpp>
 
 
-#undef BOOST_LOG_TRIVIAL
-#define BOOST_LOG_TRIVIAL(info) cout
+//#undef BOOST_LOG_TRIVIAL
+//#define BOOST_LOG_TRIVIAL(info) cout
 
 
 using namespace std;
 using namespace Pylon;
+namespace logging = boost::log;
 
-
-
-BaslerHighResInterface::BaslerHighResInterface(const char *connectionString, const char *cameraName, Operation operation)
-: cameraName(cameraName), operation_(operation)
+BaslerHighResInterface::BaslerHighResInterface(const char *connectionString, const char *cameraName,
+					       bool free_running, Operation operation)
+: cameraName(cameraName), free_running_(free_running), operation_(operation)
 
 {
   BOOST_LOG_TRIVIAL (info) << "BaslerHighResInterface constructor";
@@ -70,7 +72,7 @@ try{
   }
 
 */
-  initialiseCamera();
+ // initialiseCamera();
 
 }
 
@@ -114,8 +116,12 @@ BaslerHighResInterface::initialiseCamera() {
   camera->Open();
 
 
-  getGain();
-  startSamplingLoop();
+ // getGain();
+ // startSamplingLoop();
+
+  //Switching format
+  camera->PixelFormat.SetValue(Basler_GigECamera::PixelFormat_Mono12);
+  sample_rate_in_Hz_ = camera->AcquisitionFrameRateAbs.GetValue();
 }
 
 
@@ -241,24 +247,69 @@ BaslerHighResInterface::getRegionEnabled()
   return camera->GainRaw.GetValue();
 }
 
-
-// \todo float !!!
+/*
 void
-BaslerHighResInterface::setTriggerInterval(int64_t value)
+BaslerHighResInterface::setTriggerInterval(int6)
 {
-  float value_f;
   BOOST_LOG_TRIVIAL (info) << "setTriggerInterval(" << value << ")";
-  camera->AcquisitionFrameRateAbs.SetValue(value_f);
+  camera->AcquisitionFrameRateEnable.SetValue(true);
+  camera->AcquisitionFrameRateAbs.SetValue(int64_t);
 }
+*/
 
-//Todo float!!
 bool
-BaslerHighResInterface::checkTriggerInterval(int64_t value)
+BaslerHighResInterface::checkTriggerInterval(int64_t period)
 {
-  BOOST_LOG_TRIVIAL (info) << "checkTriggerInterval(" << value << ")";
+  BOOST_LOG_TRIVIAL (info) << "checkTriggerInterval(" << period << ")";
 
-  double min = camera->AcquisitionFrameRateAbs.GetMin();
-  double max = camera->AcquisitionFrameRateAbs.GetMax();
+  /* My understanding:
+   * if one sets AcquisitionFrameRateAbs Then ResultingFrameRateAbs will give you the what rate you will get
+   *
+   * Algorithm:
+   * 1. Remember old AcquisitionFrameRateAbs
+   * 2. Set Wanted value for  AcquisitionFrameRateAbs
+   * 3. Read out ResultingFrameRateAbs
+   * 4. Set Back old AcquisitionFrameRateAbs
+   * 5. Check if ResultingFrameRateAbs is close to AcquisitionFrameRateAbs, then ok
+   * (Remember Camera is operating i Hertz second (float) , but we get inn period in i us int64 )
+   */
+
+  float wished_rate_in_Hz = 1.e6/period;// Convert to Hz
+  // Must be enabled to do calculating
+  //1. Stored in  sampleRate_in_Hz_
+
+  camera->AcquisitionFrameRateEnable.SetValue(true);
+  // 2.
+  BOOST_LOG_TRIVIAL (info) << "Testing frame rate: " << wished_rate_in_Hz;
+  camera->AcquisitionFrameRateAbs.SetValue(wished_rate_in_Hz);
+  //3.
+
+  float resulting_rate_in_Hz = camera->ResultingFrameRateAbs.GetValue();
+  BOOST_LOG_TRIVIAL (info) << "Reading Resulting frame rate  (ResultingFrameRateAbs)" << resulting_rate_in_Hz;
+  //4.
+  BOOST_LOG_TRIVIAL (info) << "Setting back old sample rate";
+  camera->AcquisitionFrameRateAbs.SetValue(sample_rate_in_Hz_);
+  //.5
+  if (abs(wished_rate_in_Hz - resulting_rate_in_Hz) < 1){
+      sample_rate_in_Hz_= resulting_rate_in_Hz;
+    BOOST_LOG_TRIVIAL (info) << "Test of sample rate yields ok. Storing it";
+    return true;
+  }
+  else
+    {
+      BOOST_LOG_TRIVIAL (info) << "Test of sample rate NOT yields ok. not keeping it";
+      return false;
+    }
+
+  //double min = camera->AcquisitionFrameRateAbs.GetMin();
+  //double max = camera->AcquisitionFrameRateAbs.GetMax();
+
+
+
+
+
+
+/*
   BOOST_LOG_TRIVIAL (info) << "checkTriggerInterval: min: " << min << " max:" << max;
   if(value < min || value > max)
     {
@@ -266,7 +317,9 @@ BaslerHighResInterface::checkTriggerInterval(int64_t value)
       return false;
     }
   BOOST_LOG_TRIVIAL (info) << "Triggerinterval OK";
+  samplingsRate_= value;
   return true;
+*/
 }
 
 
@@ -370,7 +423,22 @@ void
 BaslerHighResInterface::do_start()
 {
   BOOST_LOG_TRIVIAL (info) << "BaslerHighResInterface::do_start()";
-  stopSampling();
+  if(free_running_)
+    {
+
+      camera->TriggerMode.SetValue(Basler_GigECamera::TriggerModeEnums::TriggerMode_Off);
+      camera->AcquisitionFrameRateEnable.SetValue(false);
+      camera->AcquisitionFrameRateEnable.SetValue(sample_rate_in_Hz_);
+
+    }
+  else
+    {
+      camera->TriggerMode.SetValue(Basler_GigECamera::TriggerModeEnums::TriggerMode_On);
+      camera->TriggerSource.SetValue(Basler_GigECamera::TriggerSourceEnums::TriggerSource_Line1);
+      camera->TriggerSelector.SetValue(Basler_GigECamera::TriggerSelectorEnums::TriggerSelector_FrameStart);
+
+     }
+  startSampling();
 }
 
 void
@@ -416,8 +484,10 @@ BaslerHighResInterface::startSamplingLoop()
   formatConverter.OutputPixelFormat = PixelType_BGR8packed;
   CPylonImage pylonImage;
 
+#ifdef SHOW_IMAGE
   // Create an OpenCV image
   cv::Mat openCvImage;//
+#endif
 
   // Start the grabbing of c_countOfImagesToGrab images.
   // The camera device is parameterized with a default configuration which
@@ -448,6 +518,7 @@ BaslerHighResInterface::startSamplingLoop()
 	  cout << "Gray value of first pixel: " << (uint32_t) pImageBuffer[0]
 	      << endl << endl;
 
+#ifdef SHOW_IMAGE
 	  // Convert the grabbed buffer to pylon imag
 	  formatConverter.Convert (pylonImage, ptrGrabResult);
 	  // Create an OpenCV image out of pylon image
@@ -463,6 +534,11 @@ BaslerHighResInterface::startSamplingLoop()
 	  // '0' means indefinite, i.e. the next image will be displayed after closing the window
 	  // '1' means live stream
 	  cv::waitKey (1);
+#endif
+	  uint8_t *pImageBuffer2 = (uint8_t *) ptrGrabResult->GetBuffer ();
+	  clock::time_point next = clock::now();
+	 // operation_(lImage->GetDataPointer(), std::chrono::duration_cast<std::chrono::microseconds>(next.time_since_epoch()).count());
+	  operation_(pImageBuffer2, std::chrono::duration_cast<std::chrono::microseconds>(next.time_since_epoch()).count());
 
 	}
       else
@@ -479,16 +555,9 @@ BaslerHighResInterface::startSampling()
 {
 
   BOOST_LOG_TRIVIAL (info) << "startSampling()";
-  // The exit code of the sample application.
-     int exitCode = 0;
 
-     // Automagically call PylonInitialize and PylonTerminate to ensure the pylon runtime system
-     // is initialized during the lifetime of this object.
-     Pylon::PylonAutoInitTerm autoInitTerm;
-;
      try
      {
-        //startSamplingLoop();
         threadSamplingLoop = std::thread(&BaslerHighResInterface::startSamplingLoop, this);
      }
      catch (GenICam::GenericException &e)
@@ -496,7 +565,6 @@ BaslerHighResInterface::startSampling()
          // Error handling.
          cerr << "An exception occurred." << endl
          << e.GetDescription() << endl;
-         exitCode = 1;
      }
 
 }

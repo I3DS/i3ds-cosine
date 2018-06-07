@@ -39,7 +39,7 @@ class BaslerHighResInterface
 {
 public:
 
-  BaslerHighResInterface(const char *connectionString, const char *camera_name, Operation operation);
+  BaslerHighResInterface(const char *connectionString, const char *camera_name, bool free_running, Operation operation);
   void initialiseCamera();
   void stopSampling();
   void startSamplingLoop();
@@ -92,9 +92,14 @@ private:
   const char *cameraName;
 
   // Sample operation.
-   Operation operation_;
-   char *ConnectionID;
 
+   char *ConnectionID;
+   bool free_running_;
+   Operation operation_;
+
+   float sample_rate_in_Hz_;
+
+   typedef std::chrono::high_resolution_clock clock;
 };
 
 #endif

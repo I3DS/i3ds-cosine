@@ -47,17 +47,18 @@ namespace logging = boost::log;
 
 template <class MeasurementTopic>
 i3ds::EmulatedCamera<MeasurementTopic>::EmulatedCamera(Context::Ptr context, NodeID node, int resx, int resy,
-					     std::string ipAddress, std::string camera_name)
+					     std::string ipAddress, std::string camera_name, bool free_running)
   : Camera(node),
     resx_(resx),
     resy_(resy),
+    free_running_(free_running),
 //,
    // sampler_(std::bind(&i3ds::EmulatedCamera::send_sample, this, std::placeholders::_1)),
     publisher_(context, node)
 {
   BOOST_LOG_TRIVIAL(info) << "EmulatedCamera::EmulatedCamera()";
 #ifdef EBUS_CAMERA
-  cameraInterface = new EbusCameraInterface(ipAddress.c_str(), camera_name.c_str(),
+  cameraInterface = new EbusCameraInterface(ipAddress.c_str(), camera_name.c_str(), free_running,
   						std::bind(&i3ds::EmulatedCamera<MeasurementTopic>::send_sample, this,
   							  std::placeholders::_1, std::placeholders::_2));
  /* cameraInterface = new EbusCameraInterface("10.0.1.117",
@@ -69,14 +70,14 @@ i3ds::EmulatedCamera<MeasurementTopic>::EmulatedCamera(Context::Ptr context, Nod
 
 #ifdef BASLER_CAMERA
 #ifdef HR_CAMERA
-  cameraInterface = new BaslerHighResInterface(ipAddress.c_str(), camera_name.c_str(),
+  cameraInterface = new BaslerHighResInterface(ipAddress.c_str(), camera_name.c_str(), free_running,
    						std::bind(&i3ds::EmulatedCamera<MeasurementTopic>::send_sample, this,
  							  std::placeholders::_1, std::placeholders::_2));
 #endif
 
 
 #ifdef TOF_CAMERA
-  cameraInterface = new Basler_ToF_Interface(	ipAddress.c_str(),camera_name.c_str(),
+  cameraInterface = new Basler_ToF_Interface(	ipAddress.c_str(),camera_name.c_str(), free_running,
   						std::bind(&i3ds::EmulatedCamera<MeasurementTopic>::send_sample, this,
 				std::placeholders::_1, std::placeholders::_2));
 #endif
@@ -142,8 +143,6 @@ i3ds::EmulatedCamera<MeasurementTopic>::do_activate()
   cameraInterface->setSourceBothStreams();
 #endif
 
-
-
   shutter_ = cameraInterface->getShutterTime();
   BOOST_LOG_TRIVIAL(info) << "Shutter_: " << shutter_;
 
@@ -152,7 +151,7 @@ i3ds::EmulatedCamera<MeasurementTopic>::do_activate()
 
  frame_.region.size_x = resx_ = planarRegion.size_x;
 
- // TODO Can simplifyies
+ // TODO Can simplifies
 
 
 #ifdef TOF_CAMERA
@@ -206,19 +205,13 @@ i3ds::EmulatedCamera<MeasurementTopic>::do_deactivate()
 }
 
 
-// \todo should it throw if not supported or return just false?
-
 
 template <class MeasurementTopic>
 bool
 i3ds::EmulatedCamera<MeasurementTopic>::is_sampling_supported(SampleCommand sample)
 {
- // BOOST_LOG_TRIVIAL(info) << "Emulated camera with NodeID: " << node() << " is_period_supported()";
-  return sample.batch_size == 1 && (0 < sample.period && sample.period <= 10000000);
-  //BOOST_LOG_TRIVIAL(info) << "is_rate_supported()" << rate;
-  //cameraInterface->checkTriggerInterval(rate);
-    //rate_ = rate;
-  //return 0 < rate && rate <= 10000000;
+  BOOST_LOG_TRIVIAL(info) << "is_rate_supported() " << sample.period;
+  return cameraInterface->checkTriggerInterval(sample.period);
 }
 
 
@@ -386,6 +379,8 @@ BOOST_LOG_TRIVIAL(info) << "EmulatedCamera::send_sample()x2";
 #ifndef TOF_CAMERA
   BOOST_LOG_TRIVIAL(info) << "Not Special:send_sample() nCount  : "
        << frame_.image.nCount;
+  printf("frame_.image.arr: %p\n", frame_.image.arr);
+  printf("image: %p\n", image);
   memcpy(frame_.image.arr, image,  frame_.image.nCount);
   BOOST_LOG_TRIVIAL(info) << "Not Special:send_sample()2";
 #endif

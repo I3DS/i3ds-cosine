@@ -55,6 +55,7 @@ volatile bool running;
 unsigned int node_id;
 std::string ip_address;
 std::string camera_name;
+bool camera_freerunning = false;
 
 void signal_handler(int signum)
 {
@@ -71,8 +72,8 @@ int main(int argc, char** argv)
 	    ("help,h", "Produce this message")
 	    ("node,n", po::value<unsigned int>(&node_id)->default_value(DEFAULT_NODE_ID), "Node ID of camera")
 	    ("ip-address,i", po::value<std::string>(&ip_address)->default_value(DEFAULT_IP_ADDRESS), "Use IP Address of camera to connect")
-	    ("camera-name,c", po::value<std::string>(&camera_name)->default_value(DEFAULT_CAMERA_NAME), "Connect via FriendlyName(UserDefinedName) of Camera")
-
+	    ("camera-name,c", po::value<std::string>(&camera_name)->default_value(DEFAULT_CAMERA_NAME), "Connect via (UserDefinedName) of Camera")
+	    ("camera-freerunning,f", po::bool_switch(&camera_freerunning), "Freerunning. Default external triggered")
 
 	    ("verbose,v", "Print verbose output")
 	    ("quite,q", "Quiet ouput")
@@ -148,22 +149,22 @@ int main(int argc, char** argv)
 
 
 #ifdef HR_CAMERA
-  camera = new i3ds::EmulatedCamera<i3ds::Camera::MonoFrame8MTopic>(context, node_id, 800, 600, ip_address, camera_name);
+  camera = new i3ds::EmulatedCamera<i3ds::Camera::MonoFrame8MTopic>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
 #endif
 
 #ifdef TOF_CAMERA
-camera = new i3ds::EmulatedCamera<i3ds::ToFCamera::Measurement500KTopic>(context, node_id, 800, 600, ip_address, camera_name);
+camera = new i3ds::EmulatedCamera<i3ds::ToFCamera::Measurement500KTopic>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
 #endif
 
 #ifdef STEREO_CAMERA
-camera = new i3ds::EmulatedCamera<i3ds::Camera::StereoFrame8MTopic>(context, node_id, 800, 600, ip_address, camera_name);
+camera = new i3ds::EmulatedCamera<i3ds::Camera::StereoFrame8MTopic>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
 #endif
 
 
 #ifndef TOF_CAMERA
 #ifndef HR_CAMERA
 #ifndef STEREO_CAMERA
-camera = new i3ds::EmulatedCamera<i3ds::Camera::MonoFrame4MTopic>(context, node_id, 800, 600, ip_address, camera_name);
+camera = new i3ds::EmulatedCamera<i3ds::Camera::MonoFrame4MTopic>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
 #endif
 #endif
 #endif

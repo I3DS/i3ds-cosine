@@ -58,7 +58,7 @@ public:
   //typedef Topic<128, CameraMeasurement4MCodec> ImageMeasurement;
   //typedef Topic<128, Codec> ImageMeasurement;
 
-  EmulatedCamera(Context::Ptr context, NodeID id, int resx, int resy, std::string ipAddress, std::string camera_name);
+  EmulatedCamera(Context::Ptr context, NodeID id, int resx, int resy, std::string ipAddress, std::string camera_name,  bool free_running);
   virtual ~EmulatedCamera();
 
   // Getters.
@@ -112,6 +112,7 @@ private:
   FlashStrength flash_strength_;
   bool pattern_enabled_;
   PatternSequence pattern_sequence_;
+  bool free_running_;
 
  // Sampler sampler_;
 
