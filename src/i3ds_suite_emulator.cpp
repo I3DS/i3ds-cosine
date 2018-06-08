@@ -73,7 +73,7 @@ int main(int argc, char** argv)
 	    ("node,n", po::value<unsigned int>(&node_id)->default_value(DEFAULT_NODE_ID), "Node ID of camera")
 	    ("ip-address,i", po::value<std::string>(&ip_address)->default_value(DEFAULT_IP_ADDRESS), "Use IP Address of camera to connect")
 	    ("camera-name,c", po::value<std::string>(&camera_name)->default_value(DEFAULT_CAMERA_NAME), "Connect via (UserDefinedName) of Camera")
-	    ("camera-freerunning,f", po::bool_switch(&camera_freerunning), "Freerunning. Default external triggered")
+	    ("free-running,f", po::bool_switch(&camera_freerunning), "Free-running sampling. Default external triggered")
 
 	    ("verbose,v", "Print verbose output")
 	    ("quite,q", "Quiet ouput")

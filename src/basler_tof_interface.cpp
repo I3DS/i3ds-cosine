@@ -130,14 +130,24 @@ Basler_ToF_Interface::getRegion ()
  }
 
 
-//// TODO Float conversion
-/// And scale
+
 void
-Basler_ToF_Interface::setTriggerInterval (int64_t sampleRate)
+Basler_ToF_Interface::setTriggerInterval()
 {
+  BOOST_LOG_TRIVIAL (info) << "setting samplingsrate " << samplingsRate_in_Hz_;
 
   GenApi::CFloatPtr ptrTriggerInterval (m_Camera.GetParameter ("AcquisitionFrameRate"));
-  ptrTriggerInterval->SetValue (sampleRate);
+  ptrTriggerInterval->SetValue (samplingsRate_in_Hz_);
+}
+
+
+void
+Basler_ToF_Interface::setTriggerInterval_in_Hz (float rate_in_Hz)
+{
+  BOOST_LOG_TRIVIAL (info) << "setting samplingsrate " << rate_in_Hz;
+
+  GenApi::CFloatPtr ptrTriggerInterval (m_Camera.GetParameter ("AcquisitionFrameRate"));
+  ptrTriggerInterval->SetValue (rate_in_Hz);
 }
 
 
@@ -154,15 +164,19 @@ Basler_ToF_Interface::checkTriggerInterval (int64_t period)  // period is in us,
 {
 
   float wished_rate_in_Hz = 1e6/period; 
+  BOOST_LOG_TRIVIAL (info) << "Tof CheckTriggerInterval: " << wished_rate_in_Hz <<"Hz = " << period <<"uS";
   GenApi::CFloatPtr ptrTriggerInterval (m_Camera.GetParameter ("AcquisitionFrameRate"));
   float max_rate_Hz = ptrTriggerInterval->GetMax();
   float min_rate_Hz = ptrTriggerInterval->GetMin();
-  if((wished_rate_in_Hz <= min_rate_Hz) && wished_rate_in_Hz <= max_rate_Hz){
+  BOOST_LOG_TRIVIAL (info) << "Allowed rate in Hz: Min: " << min_rate_Hz << "Hz, Max: " << max_rate_Hz << "Hz";
+  if((wished_rate_in_Hz >= min_rate_Hz) && wished_rate_in_Hz <= max_rate_Hz){
+      BOOST_LOG_TRIVIAL (info) << "Tof CheckTriggerInterval. Frequency ok. Storing it.";
       samplingsRate_in_Hz_ = wished_rate_in_Hz;
       return true;
   }
   else
     {
+      BOOST_LOG_TRIVIAL (info) << "Tof CheckTriggerInterval. Frequency NOT ok. Using the old one."; 
       return false;
     }
 }
@@ -370,7 +384,7 @@ Basler_ToF_Interface::do_start ()
   if(free_running_)
     {
       setTriggerModeOn(false);
-      setTriggerInterval(samplingsRate_in_Hz_);
+      setTriggerInterval_in_Hz(samplingsRate_in_Hz_);
       
     }
   else
@@ -424,11 +438,11 @@ Basler_ToF_Interface::StartSamplingLoop ()
       m_nBuffersGrabbed = 0;
       // Acquire images until the call-back onImageGrabbed indicates to stop acquisition.
       // 5 buffers are used (round-robin).
-      m_Camera.GrabContinuous (15, 1000, this,
+      m_Camera.GrabContinuous (15, (samplingsRate_in_Hz_*1000*1.2), this,
 			       &Basler_ToF_Interface::onImageGrabbed);
 
       // Clean-up
-      m_Camera.Close ();
+    //  m_Camera.Close ();
     }
   catch (const GenICam::GenericException& e)
     {

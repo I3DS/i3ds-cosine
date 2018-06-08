@@ -578,6 +578,7 @@ EbusCameraInterface::setTriggerInterval ()
 {
   BOOST_LOG_TRIVIAL (info) << "Set TriggerInterval: trigger_interval_value_: " << trigger_interval_value_; 
   setIntParameter ("TriggerInterval", trigger_interval_value_);
+  
 }
 
 
@@ -587,20 +588,20 @@ EbusCameraInterface::checkTriggerInterval (int64_t period_us)
 {
   BOOST_LOG_TRIVIAL (info) << "Check TriggerInterval: Period: " << period_us;
   
-  int trigger_interval_value = period_us/(1e6*trigger_interval_factor);
+  int trigger_interval_value = period_us*trigger_interval_factor/1e6;
   
 
-   double min =  getMinParameter ("Triggerinterval");
-   double max =  getMaxParameter ("Triggerinterval");
+   int min =  getMinParameter ("TriggerInterval");
+   int max =  getMaxParameter ("TriggerInterval");
    BOOST_LOG_TRIVIAL (info) << "checkTriggerInterval: min: " << min << " max:" << max;
-   BOOST_LOG_TRIVIAL (info) << "Triggerinterval value tested: "<< min << trigger_interval_value;
+   BOOST_LOG_TRIVIAL (info) << "Triggerinterval value tested: " << trigger_interval_value;
 
    if(trigger_interval_value < min || trigger_interval_value > max)
      {
        BOOST_LOG_TRIVIAL (info) << "checkTriggerInterval out of range";
        return false;
      }
-   BOOST_LOG_TRIVIAL (info) << "Triggerinterval OK";
+   BOOST_LOG_TRIVIAL (info) << "TriggerInterval OK";
    trigger_interval_value_ = trigger_interval_value;
    return true;
   
@@ -704,6 +705,7 @@ EbusCameraInterface::do_start ()
       setEnum ("AcquisitionMode", "Continuous");
       setEnum ("TriggerMode", "Interval");
       setIntParameter ("TriggerInterval", trigger_interval_value_);
+      samplingsTimeout_ = 1000*(trigger_interval_value_ / trigger_interval_factor)*1.5;
   }
   else{
       setEnum ("AcquisitionMode", "SingleFrame");
@@ -986,7 +988,9 @@ EbusCameraInterface::StartSamplingLoop ()
 	  // Retrieve next buffer
 	  PvBuffer *lBuffer = NULL;
 	  PvResult lOperationResult;
-	  PvResult lResult = mPipeline->RetrieveNextBuffer (&lBuffer, 10000,
+	  BOOST_LOG_TRIVIAL (info) << "sampling timeout:" << samplingsTimeout_;
+	  PvResult lResult = mPipeline->RetrieveNextBuffer (&lBuffer,
+							    100*samplingsTimeout_,
 							    &lOperationResult);
 
 	  if (lResult.IsOK ())

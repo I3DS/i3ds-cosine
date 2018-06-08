@@ -144,7 +144,7 @@ class EbusCameraInterface: protected PvDeviceEventSink {
 
 
      int trigger_interval_value_;
-
+     int samplingsTimeout_;
     typedef std::chrono::high_resolution_clock clock;
 
 };

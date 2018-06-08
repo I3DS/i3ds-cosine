@@ -280,12 +280,20 @@ BaslerHighResInterface::checkTriggerInterval(int64_t period)
 
   camera->AcquisitionFrameRateEnable.SetValue(true);
   // 2.
-  BOOST_LOG_TRIVIAL (info) << "Testing frame rate: " << wished_rate_in_Hz;
-  camera->AcquisitionFrameRateAbs.SetValue(wished_rate_in_Hz);
+  BOOST_LOG_TRIVIAL (info) << "Testing frame rate: " << wished_rate_in_Hz << "Hz";
+  try{
+      camera->AcquisitionFrameRateAbs.SetValue(wished_rate_in_Hz);
+  }catch (GenICam::GenericException &e)
+  {
+      // Error handling.
+      BOOST_LOG_TRIVIAL (info)  << "An exception occurred." << e.GetDescription() << endl;
+      BOOST_LOG_TRIVIAL (info) << "frame rate is out of range: " << wished_rate_in_Hz << " Hz";
+      return false;
+  }
   //3.
-
   float resulting_rate_in_Hz = camera->ResultingFrameRateAbs.GetValue();
-  BOOST_LOG_TRIVIAL (info) << "Reading Resulting frame rate  (ResultingFrameRateAbs)" << resulting_rate_in_Hz;
+  BOOST_LOG_TRIVIAL (info) << "Reading Resulting frame rate  (ResultingFrameRateAbs)"
+      << resulting_rate_in_Hz << "Hz";
   //4.
   BOOST_LOG_TRIVIAL (info) << "Setting back old sample rate";
   camera->AcquisitionFrameRateAbs.SetValue(sample_rate_in_Hz_);

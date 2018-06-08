@@ -47,8 +47,6 @@ class Basler_ToF_Interface
     void setRegion(PlanarRegion region);
     PlanarRegion getRegion();
 
-    void setTriggerInterval(int64_t);
-    bool checkTriggerInterval(int64_t);
 
     bool getAutoExposureEnabled();
     void setAutoExposureEnabled(bool value);
@@ -63,7 +61,9 @@ class Basler_ToF_Interface
     int64_t getMaxShutterTime();
     void setMaxShutterTime(int64_t);
 
-
+    void setTriggerInterval_in_Hz (float rate_in_Hz);
+    bool checkTriggerInterval(int64_t);
+    void setTriggerInterval();
     float getSamplingsRate();
     void setTriggerSourceToLine1();
     void setTriggerModeOn (bool value);
