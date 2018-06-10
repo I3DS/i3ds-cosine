@@ -404,7 +404,7 @@ EbusCameraInterface::setIntParameter (PvString whichParameter, int64_t value)
       if (value > max)
 	{
 	  BOOST_LOG_TRIVIAL (info) << "Setting value Error: Parameter: "
-	      << whichParameter.GetAscii () << " value to big " << value << " (Max: "
+	      << whichParameter.GetAscii () << " value too big " << value << " (Max: "
 	      << max <<")";
 
 	  ostringstream errorDescription;

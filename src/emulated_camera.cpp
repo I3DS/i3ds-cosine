@@ -365,7 +365,7 @@ i3ds::EmulatedCamera<MeasurementTopic>::send_sample(unsigned char *image, unsign
 ;
 BOOST_LOG_TRIVIAL(info) << "TOF:send_sample() ";
 #endif
-BOOST_LOG_TRIVIAL(info) << "EmulatedCamera::send_sample()x2";
+
 #ifdef STEREO_CAMERA
   BOOST_LOG_TRIVIAL(info) << "Stereo:send_sample() nCount left:right : "
       << frame_.image_left.nCount
@@ -377,12 +377,12 @@ BOOST_LOG_TRIVIAL(info) << "EmulatedCamera::send_sample()x2";
 
 #ifndef STEREO_CAMERA
 #ifndef TOF_CAMERA
-  BOOST_LOG_TRIVIAL(info) << "Not Special:send_sample() nCount  : "
+  BOOST_LOG_TRIVIAL(info) << "Other camera:send_sample() nCount  : "
        << frame_.image.nCount;
   printf("frame_.image.arr: %p\n", frame_.image.arr);
   printf("image: %p\n", image);
   memcpy(frame_.image.arr, image,  frame_.image.nCount);
-  BOOST_LOG_TRIVIAL(info) << "Not Special:send_sample()2";
+  BOOST_LOG_TRIVIAL(info) << "Other camera:send_sample() end";
 #endif
 #endif
 
