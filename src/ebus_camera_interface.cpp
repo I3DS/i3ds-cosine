@@ -586,9 +586,10 @@ EbusCameraInterface::setTriggerInterval ()
 bool
 EbusCameraInterface::checkTriggerInterval (int64_t period_us)
 {
-  BOOST_LOG_TRIVIAL (info) << "Check TriggerInterval: Period: " << period_us;
+  BOOST_LOG_TRIVIAL (info) << "Check TriggerInterval: Period: " << period_us <<" which equals "
+      << 1e6/period_us<< "Hz";
   
-  int trigger_interval_value = period_us*trigger_interval_factor/1e6;
+  int trigger_interval_value = period_us*trigger_interval_factor/1.0e6;
   
 
    int min =  getMinParameter ("TriggerInterval");
@@ -705,7 +706,11 @@ EbusCameraInterface::do_start ()
       setEnum ("AcquisitionMode", "Continuous");
       setEnum ("TriggerMode", "Interval");
       setIntParameter ("TriggerInterval", trigger_interval_value_);
-      samplingsTimeout_ = 1000*(trigger_interval_value_ / trigger_interval_factor)*1.5;
+      BOOST_LOG_TRIVIAL (info)  << " trigger_interval_value_:"<< trigger_interval_value_;
+      BOOST_LOG_TRIVIAL (info)  << " trigger_interval_factor:"<< trigger_interval_factor;
+
+      samplingsTimeout_ = 1000.*(float)trigger_interval_value_ / (float)trigger_interval_factor*2.0;
+      BOOST_LOG_TRIVIAL (info)  << " Tid:"<< samplingsTimeout_;
   }
   else{
       setEnum ("AcquisitionMode", "SingleFrame");
@@ -990,7 +995,7 @@ EbusCameraInterface::StartSamplingLoop ()
 	  PvResult lOperationResult;
 	  BOOST_LOG_TRIVIAL (info) << "sampling timeout:" << samplingsTimeout_;
 	  PvResult lResult = mPipeline->RetrieveNextBuffer (&lBuffer,
-							    100*samplingsTimeout_,
+							    samplingsTimeout_,
 							    &lOperationResult);
 
 	  if (lResult.IsOK ())
