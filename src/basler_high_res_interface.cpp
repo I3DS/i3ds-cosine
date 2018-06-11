@@ -83,9 +83,9 @@ try{
 void
 BaslerHighResInterface::initialiseCamera() {
 
-  cout << "Creating Camera..." << endl;
+  BOOST_LOG_TRIVIAL (info) << "Creating Camera...";
 
-
+try{
   CDeviceInfo info;
   info.SetUserDefinedName(cameraName);
   info.SetDeviceClass( Pylon::CBaslerGigEInstantCamera::DeviceClass());
@@ -122,6 +122,14 @@ BaslerHighResInterface::initialiseCamera() {
   //Switching format
   camera->PixelFormat.SetValue(Basler_GigECamera::PixelFormat_Mono12);
   sample_rate_in_Hz_ = camera->AcquisitionFrameRateAbs.GetValue();
+
+}catch (GenICam::GenericException &e)
+  {
+      // Error handling.
+    std::ostringstream errorDescription;
+    errorDescription << "An exception occurred." << e.GetDescription();
+    throw i3ds::CommandError(error_value, errorDescription.str());;
+  }
 }
 
 
