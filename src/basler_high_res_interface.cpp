@@ -438,17 +438,19 @@ BaslerHighResInterface::do_deactivate()
 void
 BaslerHighResInterface::do_start()
 {
-  BOOST_LOG_TRIVIAL (info) << "BaslerHighResInterface::do_start()";
+  BOOST_LOG_TRIVIAL (info) << "BaslerHighResInterface::do_start():" << free_running_;
   if(free_running_)
     {
 
       camera->TriggerMode.SetValue(Basler_GigECamera::TriggerModeEnums::TriggerMode_Off);
-      camera->AcquisitionFrameRateEnable.SetValue(false);
-      camera->AcquisitionFrameRateEnable.SetValue(sample_rate_in_Hz_);
+      camera->AcquisitionFrameRateEnable.SetValue(true);
+      BOOST_LOG_TRIVIAL (info) << "BaslerHighResInterface::do_start() sample_rate_in_Hz_:" << sample_rate_in_Hz_;
+      camera->AcquisitionFrameRateAbs.SetValue(sample_rate_in_Hz_);
 
     }
   else
     {
+      camera->AcquisitionFrameRateEnable.SetValue(false);
       camera->TriggerMode.SetValue(Basler_GigECamera::TriggerModeEnums::TriggerMode_On);
       camera->TriggerSource.SetValue(Basler_GigECamera::TriggerSourceEnums::TriggerSource_Line1);
       camera->TriggerSelector.SetValue(Basler_GigECamera::TriggerSelectorEnums::TriggerSelector_FrameStart);
@@ -510,6 +512,17 @@ BaslerHighResInterface::startSamplingLoop()
   // sets up free-running continuous acquisition.
   //camera->StartGrabbing ();
   //  camera->StartGrabbing (c_countOfImagesToGrab);
+
+
+  float AcquisitionFrameRateAbsFloat = camera->AcquisitionFrameRateAbs.GetValue();
+  BOOST_LOG_TRIVIAL(info) << "AcquisitionFrameRateAbsFloat: " << AcquisitionFrameRateAbsFloat << "Hz="
+      << (1./AcquisitionFrameRateAbsFloat) << "sec";
+
+
+  float timeoutGrabingFloat =  2.0*1000./camera->ResultingFrameRateAbs.GetValue() ;
+  BOOST_LOG_TRIVIAL (info) << "timeoutGrabingFloat: " << timeoutGrabingFloat;
+  int  timeoutGrabingInt = ceil(timeoutGrabingFloat);
+  BOOST_LOG_TRIVIAL (info) << "timeoutGrabingInt: " << timeoutGrabingInt << "ms";
   camera->StartGrabbing ();
 
 
