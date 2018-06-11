@@ -39,10 +39,6 @@
 #include <boost/log/expressions.hpp>
 
 
-//#undef BOOST_LOG_TRIVIAL
-//#define BOOST_LOG_TRIVIAL(info) cout
-
-
 using namespace std;
 using namespace Pylon;
 namespace logging = boost::log;
@@ -94,12 +90,12 @@ try{
 
   camera = new CBaslerGigEInstantCamera ( CTlFactory::GetInstance().CreateFirstDevice(info));
 
-  cout << "Camera Created." << endl;
+  BOOST_LOG_TRIVIAL (info) << "Camera Created.";
   //Print the model name of the camera.
-  cout << "Using device : " << camera->GetDeviceInfo().GetModelName() << endl;
-  cout << "Friendly Name: " << camera->GetDeviceInfo().GetFriendlyName() << endl;
-  cout << "Full Name    : " << camera->GetDeviceInfo().GetFullName() << endl;
-  cout << "SerialNumber : " << camera->GetDeviceInfo().GetSerialNumber() << endl;
+  BOOST_LOG_TRIVIAL (info) << "Using device : " << camera->GetDeviceInfo().GetModelName();
+  BOOST_LOG_TRIVIAL(info)<< "Friendly Name: " << camera->GetDeviceInfo().GetFriendlyName();
+  BOOST_LOG_TRIVIAL (info)<< "Full Name    : " << camera->GetDeviceInfo().GetFullName();
+  BOOST_LOG_TRIVIAL (info)<< "SerialNumber : " << camera->GetDeviceInfo().GetSerialNumber();
 
    /*
     List to tell what kind of parameter one can use to connect to camera.
@@ -107,11 +103,10 @@ try{
     StringList_t stringList;
     camera->GetDeviceInfo().GetPropertyNames(stringList);
     for(int i=0; i < stringList.size(); i++)
-      cout << "Stringlist" << stringList[i] << endl;
+      BOOST_LOG_TRIVIAL << "Stringlist" << stringList[i];
 
-    cout << endl;
     */
-  cout << "connect finished" << endl;
+  BOOST_LOG_TRIVIAL(info) << "connect finished";
 
   camera->Open();
 
@@ -147,7 +142,7 @@ BaslerHighResInterface::getGain ()
   BOOST_LOG_TRIVIAL (info) << "Fetching parameter: GainValue";
   BOOST_LOG_TRIVIAL (info) <<   "camera.Gain.GetValue()";
 
-  cout <<  "Gain Raw: " << camera->GainRaw.GetValue() << endl;
+  BOOST_LOG_TRIVIAL (info) <<  "Gain Raw: " << camera->GainRaw.GetValue();
   return  camera->GainRaw.GetValue();
 }
 
@@ -165,17 +160,17 @@ BaslerHighResInterface::setGain (int64_t value)
 int64_t
 BaslerHighResInterface::getShutterTime()
 {
-  cout <<"getShutterTime" << endl ;
+  BOOST_LOG_TRIVIAL (info) <<"getShutterTime";
   BOOST_LOG_TRIVIAL (info) << "getShutterTime()";
-  cout <<"X1" << endl ;
+  BOOST_LOG_TRIVIAL (info) <<"X1";
 
   int exposureTimeRaw = 1;//camera->ExposureTimeRaw.GetValue();
-  cout <<"X221" << endl ;
+  BOOST_LOG_TRIVIAL (info) <<"X221";
 
   float exposureTimeAbs = camera->ExposureTimeAbs.GetValue();
-  cout <<"X14" << endl;
+  BOOST_LOG_TRIVIAL (info) <<"X14";
   //int exposureTimeRaw2 = camera->ExposureTimeRaw.GetValue();
-  cout <<"X12" << endl;
+  BOOST_LOG_TRIVIAL (info) <<"X12";
   return (int)((exposureTimeAbs * exposureTimeRaw)+0.5);
 }
 
@@ -294,8 +289,8 @@ BaslerHighResInterface::checkTriggerInterval(int64_t period)
   }catch (GenICam::GenericException &e)
   {
       // Error handling.
-      BOOST_LOG_TRIVIAL (info)  << "An exception occurred." << e.GetDescription() << endl;
-      BOOST_LOG_TRIVIAL (info) << "frame rate is out of range: " << wished_rate_in_Hz << " Hz";
+      BOOST_LOG_TRIVIAL (info)  << "An exception occurred." << e.GetDescription();
+      BOOST_LOG_TRIVIAL (info) << "frame rate is out of range: " << wished_rate_in_Hz;
       return false;
   }
   //3.
@@ -534,18 +529,18 @@ BaslerHighResInterface::startSamplingLoop()
   while (camera->IsGrabbing ())
     {
       // Wait for an image and then retrieve it. A timeout of 5000 ms is used.
-      camera->RetrieveResult (5000, ptrGrabResult,
+      camera->RetrieveResult (timeoutGrabingInt,
+			      ptrGrabResult,
 			      TimeoutHandling_ThrowException);
 
       // Image grabbed successfully?
       if (ptrGrabResult->GrabSucceeded ())
 	{
 	  // Access the image data.
-	  cout << "SizeX: " << ptrGrabResult->GetWidth () << endl;
-	  cout << "SizeY: " << ptrGrabResult->GetHeight () << endl;
+	  BOOST_LOG_TRIVIAL (info) << "SizeX: " << ptrGrabResult->GetWidth ();
+	  BOOST_LOG_TRIVIAL (info) << "SizeY: " << ptrGrabResult->GetHeight ();
 	  const uint8_t *pImageBuffer = (uint8_t *) ptrGrabResult->GetBuffer ();
-	  cout << "Gray value of first pixel: " << (uint32_t) pImageBuffer[0]
-	      << endl << endl;
+	  BOOST_LOG_TRIVIAL (info) << "Gray value of first pixel: " << (uint32_t) pImageBuffer[0];
 
 #ifdef SHOW_IMAGE
 	  // Convert the grabbed buffer to pylon imag
@@ -572,8 +567,8 @@ BaslerHighResInterface::startSamplingLoop()
 	}
       else
 	{
-	  cout << "Error: " << ptrGrabResult->GetErrorCode () << " "
-	      << ptrGrabResult->GetErrorDescription () << endl;
+	  BOOST_LOG_TRIVIAL (info) << "Error: " << ptrGrabResult->GetErrorCode () << " "
+	      << ptrGrabResult->GetErrorDescription ();
 	}
     }
 
