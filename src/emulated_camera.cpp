@@ -274,11 +274,11 @@ void
 i3ds::EmulatedCamera<MeasurementTopic>::handle_region(RegionService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "handle_region()";
-  if(!(is_active() || is_operational())){
-    BOOST_LOG_TRIVIAL(info) << "handle_region()-->Not in active or operational state";
+  if(!(is_active())){
+    BOOST_LOG_TRIVIAL(info) << "handle_region()-->Not in active state";
 
     std::ostringstream errorDescription;
-    errorDescription << "handle_region: Not in active or operational state";
+    errorDescription << "handle_region: Not in active state";
     throw i3ds::CommandError(error_value, errorDescription.str());
   }
 
