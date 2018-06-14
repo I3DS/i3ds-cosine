@@ -51,15 +51,15 @@ namespace i3ds
 {
 
 template <class MeasurementTopic>
-class EmulatedCamera : public Camera
+class GigeCameraInterface : public Camera
 {
 public:
 
   //typedef Topic<128, CameraMeasurement4MCodec> ImageMeasurement;
   //typedef Topic<128, Codec> ImageMeasurement;
 
-  EmulatedCamera(Context::Ptr context, NodeID id, int resx, int resy, std::string ipAddress, std::string camera_name,  bool free_running);
-  virtual ~EmulatedCamera();
+  GigeCameraInterface(Context::Ptr context, NodeID id, int resx, int resy, std::string ipAddress, std::string camera_name,  bool free_running);
+  virtual ~GigeCameraInterface();
 
   // Getters.
   virtual ShutterTime shutter() const {return shutter_;}
@@ -141,5 +141,5 @@ private:
 
 } // namespace i3ds
 
-#include "../src/emulated_camera.cpp"
+#include "../src/gige_camera_interface.cpp"
 #endif

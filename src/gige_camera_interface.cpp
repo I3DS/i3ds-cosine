@@ -46,23 +46,23 @@ namespace logging = boost::log;
 
 
 template <class MeasurementTopic>
-i3ds::EmulatedCamera<MeasurementTopic>::EmulatedCamera(Context::Ptr context, NodeID node, int resx, int resy,
+i3ds::GigeCameraInterface<MeasurementTopic>::GigeCameraInterface(Context::Ptr context, NodeID node, int resx, int resy,
 					     std::string ipAddress, std::string camera_name, bool free_running)
   : Camera(node),
     resx_(resx),
     resy_(resy),
     free_running_(free_running),
 //,
-   // sampler_(std::bind(&i3ds::EmulatedCamera::send_sample, this, std::placeholders::_1)),
+   // sampler_(std::bind(&i3ds::GigeCameraInterface::send_sample, this, std::placeholders::_1)),
     publisher_(context, node)
 {
-  BOOST_LOG_TRIVIAL(info) << "EmulatedCamera::EmulatedCamera()";
+  BOOST_LOG_TRIVIAL(info) << "GigeCameraInterface::GigeCameraInterface()";
 #ifdef EBUS_CAMERA
   cameraInterface = new EbusCameraInterface(ipAddress.c_str(), camera_name.c_str(), free_running,
-  						std::bind(&i3ds::EmulatedCamera<MeasurementTopic>::send_sample, this,
+  						std::bind(&i3ds::GigeCameraInterface<MeasurementTopic>::send_sample, this,
   							  std::placeholders::_1, std::placeholders::_2));
- /* cameraInterface = new EbusCameraInterface("10.0.1.117",
-						std::bind(&i3ds::EmulatedCamera<Codec>::send_sample, this,
+ /* cameraInterface = new GigeCameraInterface("10.0.1.117",
+						std::bind(&i3ds::GigeCameraInterface<Codec>::send_sample, this,
 							  std::placeholders::_1, std::placeholders::_2));
 */
 
@@ -71,14 +71,14 @@ i3ds::EmulatedCamera<MeasurementTopic>::EmulatedCamera(Context::Ptr context, Nod
 #ifdef BASLER_CAMERA
 #ifdef HR_CAMERA
   cameraInterface = new BaslerHighResInterface(ipAddress.c_str(), camera_name.c_str(), free_running,
-   						std::bind(&i3ds::EmulatedCamera<MeasurementTopic>::send_sample, this,
+   						std::bind(&i3ds::GigeCameraInterface<MeasurementTopic>::send_sample, this,
  							  std::placeholders::_1, std::placeholders::_2));
 #endif
 
 
 #ifdef TOF_CAMERA
   cameraInterface = new Basler_ToF_Interface(	ipAddress.c_str(),camera_name.c_str(), free_running,
-  						std::bind(&i3ds::EmulatedCamera<MeasurementTopic>::send_sample, this,
+  						std::bind(&i3ds::GigeCameraInterface<MeasurementTopic>::send_sample, this,
 				std::placeholders::_1, std::placeholders::_2));
 #endif
 #endif
@@ -128,13 +128,13 @@ i3ds::EmulatedCamera<MeasurementTopic>::EmulatedCamera(Context::Ptr context, Nod
 }
 
 template <class MeasurementTopic>
-i3ds::EmulatedCamera<MeasurementTopic>::~EmulatedCamera()
+i3ds::GigeCameraInterface<MeasurementTopic>::~GigeCameraInterface()
 {
 }
 
 template <class MeasurementTopic>
 void
-i3ds::EmulatedCamera<MeasurementTopic>::do_activate()
+i3ds::GigeCameraInterface<MeasurementTopic>::do_activate()
 {
   BOOST_LOG_TRIVIAL(info) << "do_activate()";
   cameraInterface->connect();
@@ -175,7 +175,7 @@ i3ds::EmulatedCamera<MeasurementTopic>::do_activate()
 // \todo handle rate. What if not sat?
 template <class MeasurementTopic>
 void
-i3ds::EmulatedCamera<MeasurementTopic>::do_start()
+i3ds::GigeCameraInterface<MeasurementTopic>::do_start()
 {
   BOOST_LOG_TRIVIAL(info) << "do_start()";
   //sampler_.Start(rate());
@@ -186,7 +186,7 @@ i3ds::EmulatedCamera<MeasurementTopic>::do_start()
 
 template <class MeasurementTopic>
 void
-i3ds::EmulatedCamera<MeasurementTopic>::do_stop()
+i3ds::GigeCameraInterface<MeasurementTopic>::do_stop()
 {
   BOOST_LOG_TRIVIAL(info) << "do_stop()";
 
@@ -198,7 +198,7 @@ i3ds::EmulatedCamera<MeasurementTopic>::do_stop()
 
 template <class MeasurementTopic>
 void
-i3ds::EmulatedCamera<MeasurementTopic>::do_deactivate()
+i3ds::GigeCameraInterface<MeasurementTopic>::do_deactivate()
 {
   BOOST_LOG_TRIVIAL(info) << "do_deactivate()";
   cameraInterface->do_deactivate ();
@@ -208,7 +208,7 @@ i3ds::EmulatedCamera<MeasurementTopic>::do_deactivate()
 
 template <class MeasurementTopic>
 bool
-i3ds::EmulatedCamera<MeasurementTopic>::is_sampling_supported(SampleCommand sample)
+i3ds::GigeCameraInterface<MeasurementTopic>::is_sampling_supported(SampleCommand sample)
 {
   BOOST_LOG_TRIVIAL(info) << "is_rate_supported() " << sample.period;
   return cameraInterface->checkTriggerInterval(sample.period);
@@ -219,7 +219,7 @@ i3ds::EmulatedCamera<MeasurementTopic>::is_sampling_supported(SampleCommand samp
 // \todo What if first parameter throws, then the second wil not be sat.
 template <class MeasurementTopic>
 void
-i3ds::EmulatedCamera<MeasurementTopic>::handle_exposure(ExposureService::Data& command)
+i3ds::GigeCameraInterface<MeasurementTopic>::handle_exposure(ExposureService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "handle_exposure()";
   if(is_active() == false){
@@ -242,7 +242,7 @@ i3ds::EmulatedCamera<MeasurementTopic>::handle_exposure(ExposureService::Data& c
 // \todo What if first parameter throws, then the second will not be sat.
 template <class MeasurementTopic>
 void
-i3ds::EmulatedCamera<MeasurementTopic>::handle_auto_exposure(AutoExposureService::Data& command)
+i3ds::GigeCameraInterface<MeasurementTopic>::handle_auto_exposure(AutoExposureService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "handle_auto_exposure()";
   if(!(is_active() || is_operational())){
@@ -271,7 +271,7 @@ i3ds::EmulatedCamera<MeasurementTopic>::handle_auto_exposure(AutoExposureService
 // \todo What if first parameter throws, then the second will not be set.
 template <class MeasurementTopic>
 void
-i3ds::EmulatedCamera<MeasurementTopic>::handle_region(RegionService::Data& command)
+i3ds::GigeCameraInterface<MeasurementTopic>::handle_region(RegionService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "handle_region()";
   if(!(is_active())){
@@ -293,7 +293,7 @@ i3ds::EmulatedCamera<MeasurementTopic>::handle_region(RegionService::Data& comma
 
 template <class MeasurementTopic>
 void
-i3ds::EmulatedCamera<MeasurementTopic>::handle_flash(FlashService::Data& command)
+i3ds::GigeCameraInterface<MeasurementTopic>::handle_flash(FlashService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "handle_flash()";
   if(!(is_active() || is_operational())){
@@ -308,13 +308,14 @@ i3ds::EmulatedCamera<MeasurementTopic>::handle_flash(FlashService::Data& command
 
   if (command.request.enable)
     {
+
       flash_strength_ = command.request.strength;
     }
 }
 
 template <class MeasurementTopic>
 void
-i3ds::EmulatedCamera<MeasurementTopic>::handle_pattern(PatternService::Data& command)
+i3ds::GigeCameraInterface<MeasurementTopic>::handle_pattern(PatternService::Data& command)
 {
   BOOST_LOG_TRIVIAL(info) << "do_pattern()";
   if(!(is_active() || is_operational())){
@@ -337,7 +338,8 @@ i3ds::EmulatedCamera<MeasurementTopic>::handle_pattern(PatternService::Data& com
 
 template <class MeasurementTopic>
 bool
-i3ds::EmulatedCamera<MeasurementTopic>::send_sample(unsigned char *image, unsigned long timestamp_us)
+i3ds::GigeCameraInterface
+<MeasurementTopic>::send_sample(unsigned char *image, unsigned long timestamp_us)
 {
 
   BOOST_LOG_TRIVIAL(info) << "EmulatedCamera::send_sample()x";
@@ -396,7 +398,7 @@ BOOST_LOG_TRIVIAL(info) << "TOF:send_sample() ";
 
 template <class MeasurementTopic>
 void
-i3ds::EmulatedCamera<MeasurementTopic>::handle_configuration(ConfigurationService::Data& config) const
+i3ds::GigeCameraInterface<MeasurementTopic>::handle_configuration(ConfigurationService::Data& config) const
 {
   BOOST_LOG_TRIVIAL(info) << "handle_configuration()";
 

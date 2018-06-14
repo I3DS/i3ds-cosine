@@ -361,7 +361,7 @@ Basler_ToF_Interface::do_activate ()
 	}
       else
 	{
-	  throw std::rintime_error(e.GetDescription());
+	  throw std::runtime_error(e.GetDescription());
 	}
     }
 
