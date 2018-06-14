@@ -342,7 +342,7 @@ i3ds::GigeCameraInterface
 <MeasurementTopic>::send_sample(unsigned char *image, unsigned long timestamp_us)
 {
 
-  BOOST_LOG_TRIVIAL(info) << "EmulatedCamera::send_sample()x";
+  BOOST_LOG_TRIVIAL(info) << "GigeCameraInterface::send_sample()x";
 /* BOOST_LOG_TRIVIAL(info) << "Send: " << auto_exposure_enabled_ << timestamp_us;
   printf("frame_.image.arr: %p\n", frame_.image.arr);
   printf("image: %p\n", image);

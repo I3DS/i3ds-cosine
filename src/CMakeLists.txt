@@ -170,7 +170,7 @@ endforeach(START_FILE)
   
   
 #PLEORA hr
-add_executable (PleoraHr i3ds_suite_emulator.cpp ${SRCS})
+add_executable (PleoraHr i3ds_suite_cameras.cpp ${SRCS})
   target_include_directories(PleoraHr PRIVATE ${PLEORA_INCLUDE_DIRECTORIES})
   target_compile_definitions(PleoraHr PRIVATE EBUS_CAMERA=1 HR_CAMERA=1 DEFAULT_NODE_ID=16 
     DEFAULT_IP_ADDRESS="10.0.1.116" DEFAULT_CAMERA_NAME="i3ds-highres")
@@ -179,7 +179,7 @@ add_executable (PleoraHr i3ds_suite_emulator.cpp ${SRCS})
   install(TARGETS PleoraHr DESTINATION bin)
   
 #PLEORA TIR
-add_executable (PleoraTir i3ds_suite_emulator.cpp ${SRCS})
+add_executable (PleoraTir i3ds_suite_cameras.cpp ${SRCS})
   target_include_directories(PleoraTir PRIVATE ${PLEORA_INCLUDE_DIRECTORIES})
   target_compile_definitions(PleoraTir PRIVATE EBUS_CAMERA=1  DEFAULT_NODE_ID=11 
     DEFAULT_IP_ADDRESS="10.0.1.111" DEFAULT_CAMERA_NAME="i3ds-thermal")
@@ -189,7 +189,7 @@ add_executable (PleoraTir i3ds_suite_emulator.cpp ${SRCS})
 
 
 #PLEORA Stereo
-  add_executable (PleoraStereo i3ds_suite_emulator.cpp ${SRCS})
+  add_executable (PleoraStereo i3ds_suite_cameras.cpp ${SRCS})
   target_include_directories(PleoraStereo PRIVATE ${PLEORA_INCLUDE_DIRECTORIES})
   target_compile_definitions(PleoraStereo PRIVATE BASLER_TOF_CXX_FLAG STEREO_CAMERA=1 
     EBUS_CAMERA=1 DEFAULT_NODE_ID=17 DEFAULT_IP_ADDRESS="10.0.1.117" DEFAULT_CAMERA_NAME="i3ds-stereo")
@@ -200,7 +200,7 @@ add_executable (PleoraTir i3ds_suite_emulator.cpp ${SRCS})
 
 
 #Basler HR
- add_executable (BaslerHr i3ds_suite_emulator.cpp basler_high_res_interface.cpp )
+ add_executable (BaslerHr i3ds_suite_cameras.cpp basler_high_res_interface.cpp )
  #set_target_properties(BaslerHr INCLUDE_DIRECTORIES ${BASLER_HR_CPPFLAGS})
  #target_include_directories(BaslerHr PRIVATE ${BASLER_HR_CPPFLAGS})
  target_compile_definitions(BaslerHr PRIVATE BASLER_CAMERA=1 HR_CAMERA=1 DEFAULT_NODE_ID=15
@@ -213,7 +213,7 @@ add_executable (PleoraTir i3ds_suite_emulator.cpp ${SRCS})
 
 
 #Basler ToF
-  add_executable (BaslerToF i3ds_suite_emulator.cpp basler_tof_interface.cpp )
+  add_executable (BaslerToF i3ds_suite_cameras.cpp basler_tof_interface.cpp )
   target_include_directories(BaslerToF PRIVATE ${BASLER_TOF_INCLUDES})
   target_compile_definitions(BaslerToF PRIVATE BASLER_CAMERA=1 TOF_CAMERA=1 DEFAULT_NODE_ID=10 
    DEFAULT_IP_ADDRESS="10.0.1.110" DEFAULT_CAMERA_NAME="i3ds-basler-tof" )
