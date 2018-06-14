@@ -238,8 +238,8 @@ i3ds::EmulatedCamera<MeasurementTopic>::handle_exposure(ExposureService::Data& c
 }
 
 
-// \todo All parameter must be sat in client or thy wil default to 0. Do we need a don't care state?
-// \todo What if first parameter throws, then the second wil not be sat.
+// \todo All parameter must be sat in client or they will default to 0. Do we need a don't care state?
+// \todo What if first parameter throws, then the second will not be sat.
 template <class MeasurementTopic>
 void
 i3ds::EmulatedCamera<MeasurementTopic>::handle_auto_exposure(AutoExposureService::Data& command)
@@ -267,8 +267,8 @@ i3ds::EmulatedCamera<MeasurementTopic>::handle_auto_exposure(AutoExposureService
 }
 
 
-// \todo All parameter must be sat in client or thy wil default to 0. Do we need a don't care state?
-// \todo What if first parameter throws, then the second wil not be sat.
+// \todo All parameter must be sat in client or they will default to 0. Do we need a don't care state?
+// \todo What if first parameter throws, then the second will not be set.
 template <class MeasurementTopic>
 void
 i3ds::EmulatedCamera<MeasurementTopic>::handle_region(RegionService::Data& command)
