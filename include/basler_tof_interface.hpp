@@ -68,6 +68,12 @@ class Basler_ToF_Interface
     void setTriggerSourceToLine1();
     void setTriggerModeOn (bool value);
 
+    int64_t getMaxDepth();
+    void setMaxDepth (int64_t depth);
+
+    int64_t getMinDepth();
+    void setMinDepth(int64_t depth);
+
     bool connect();
 
 
@@ -86,6 +92,8 @@ class Basler_ToF_Interface
     bool free_running_;
     Operation operation_;
     float samplingsRate_in_Hz_;
+    int64_t minDepth_;
+    int64_t maxDepth_;
 
 
     typedef std::chrono::high_resolution_clock clock;

@@ -251,6 +251,40 @@ Basler_ToF_Interface::getRegionEnabled ()
   return true;
 }
 
+int64_t
+Basler_ToF_Interface::getMaxDepth()
+{
+  GenApi::CIntegerPtr ptrMaxDepth(m_Camera.GetParameter ("DepthMax"));
+  return ptrMaxDepth->GetValue ();
+
+}
+
+
+void
+Basler_ToF_Interface::setMaxDepth (int64_t depth)
+{
+  GenApi::CIntegerPtr ptrMaxDepth (m_Camera.GetParameter ("DepthMax"));
+  return ptrMaxDepth->SetValue (depth);
+
+}
+
+int64_t
+Basler_ToF_Interface::getMinDepth()
+{
+  GenApi::CIntegerPtr ptrMinDepth (m_Camera.GetParameter ("DepthMin"));
+  return ptrMinDepth->GetValue ();
+
+}
+
+void
+Basler_ToF_Interface::setMinDepth(int64_t depth)
+{
+  GenApi::CIntegerPtr ptrMinDepth(m_Camera.GetParameter ("DepthMin"));
+  return ptrMinDepth->SetValue (depth);
+
+}
+
+
 /// \TODO Is this exposure time here?
 // Actually a float in us
 int64_t
@@ -288,8 +322,8 @@ Basler_ToF_Interface::do_activate ()
       // m_Camera.OpenFirstCamera ();
 
       //  CToFCamera::OpenFirstCamera() is a shortcut for the following sequence:
-      CameraList cameras = CToFCamera::EnumerateCameras ();
-      CameraInfo camInfo = *cameras.begin ();
+      //CameraList cameras = CToFCamera::EnumerateCameras ();
+      //CameraInfo camInfo = *cameras.begin ();
       // m_Camera.Open (camInfo);
 
       //  If there are multiple cameras connected and you want to open a specific one, use
@@ -307,9 +341,9 @@ Basler_ToF_Interface::do_activate ()
 	  BOOST_LOG_TRIVIAL (info) << "TOF::do_activate";
 	  std::ostringstream errorDescription;
 	  errorDescription << "TOF::do_activate: " << e.GetDescription ();
+	  BOOST_LOG_TRIVIAL (info) << "TOF::do_activate:Error:"<< e.GetDescription ();
 	  throw i3ds::CommandError (error_value, errorDescription.str ());
 	};
-
       /*
        Instead of the IP address, any other property of the CameraInfo struct can be used,
        e.g., the serial number or the user-defined name:
@@ -318,8 +352,7 @@ Basler_ToF_Interface::do_activate ()
        CToFCamera::Open( UserDefinedName, "Left" );
        */
 
-      cout << "Connected to camera " << m_Camera.GetCameraInfo ().strDisplayName
-	  << endl;
+     // BOOST_LOG_TRIVIAL (info) <<  << "Connected to camera " << m_Camera.GetCameraInfo ().strDisplayName;
 
       // Enable 3D (point cloud) data, intensity data, and confidence data.
       GenApi::CEnumerationPtr ptrComponentSelector = m_Camera.GetParameter (
@@ -341,12 +374,14 @@ Basler_ToF_Interface::do_activate ()
 
       ptrComponentSelector->FromString ("Intensity");
       //ptrComponentEnable->SetValue (false);
-      ptrComponentEnable->SetValue (true);
+      ptrComponentEnable->SetValue (false);
 
       ptrComponentSelector->FromString ("Confidence");
       ptrComponentEnable->SetValue (true);
 
       samplingsRate_in_Hz_ = getSamplingsRate ();
+      minDepth_ = getMinDepth();
+      maxDepth_ = getMaxDepth();
 
     }
   catch (const GenICam::GenericException& e)
@@ -375,13 +410,15 @@ Basler_ToF_Interface::do_start ()
     {
       setTriggerModeOn (false);
       setTriggerInterval_in_Hz (samplingsRate_in_Hz_);
-
+     
     }
   else
     {
       setTriggerModeOn (true);
       setTriggerSourceToLine1 ();
     }
+  minDepth_ = getMinDepth();
+  maxDepth_ = getMaxDepth();
 
   threadSamplingLoop = std::thread (&Basler_ToF_Interface::StartSamplingLoop,
 				    this);  
@@ -399,7 +436,7 @@ Basler_ToF_Interface::setTriggerSourceToLine1 ()
 void
 Basler_ToF_Interface::do_stop ()
 {
-  cout << "do_stop()\n";
+  BOOST_LOG_TRIVIAL (info) << "do_stop()";
   stopSamplingLoop = true;
   if (threadSamplingLoop.joinable ())
     {
@@ -419,7 +456,7 @@ Basler_ToF_Interface::do_deactivate ()
 void
 Basler_ToF_Interface::StartSamplingLoop ()
 {
-  cout << "startSamplingLoopx()\n";
+  BOOST_LOG_TRIVIAL (info)  << "startSamplingLoopx()";
   try
     {
       m_nBuffersGrabbed = 0;
@@ -482,8 +519,8 @@ Basler_ToF_Interface::onImageGrabbed (GrabResult grabResult, BufferParts parts)
       uint16_t *pIntensity = (uint16_t*) parts[1].pData + y * width + x;
       uint16_t *pConfidence = (uint16_t*) parts[2].pData + y * width + x;
 
-      cout << "BASLERTOF::before operationXXXYYYYYY" << endl;
-      cout << "Center pixelc of image " << setw (2) << m_nBuffersGrabbed
+      BOOST_LOG_TRIVIAL (info)  << "BASLERTOF::before operationXXXYYYYYY";
+      BOOST_LOG_TRIVIAL (info)  << "Center pixelc of image " << setw (2) << m_nBuffersGrabbed
 	  << ": ";
       cout.setf (ios_base::fixed);
       cout.precision (1);
@@ -493,14 +530,56 @@ Basler_ToF_Interface::onImageGrabbed (GrabResult grabResult, BufferParts parts)
       else
 	cout << "x=   n/a y=   n/a z=   n/a";
 
-      cout << " intensity=" << setw (5) << *pIntensity << " confidence="
+   /*   cout << " intensity=" << setw (5) << *pIntensity << " confidence="
 	  << setw (5) << *pConfidence << endl;
-
-      cout << "BASLERTOF::before operationXXX" << endl;
+*/
+      BOOST_LOG_TRIVIAL (info)  << "BASLERTOF::before operationXXX";
       clock::time_point next = clock::now ();
-      cout << "BASLERTOF::before operation" << endl;
+      BOOST_LOG_TRIVIAL (info)  << "BASLERTOF::before operation";
       // operation_((unsigned char *)&parts, std::chrono::duration_cast<std::chrono::microseconds>(next.time_since_epoch()).count());
-
+  
+      
+      uint16_t *rangePix = (uint16_t *)parts[0].pData+ y * width + x;
+      int rangeSize = (int)parts[0].size;
+      cout << "Test range parts[0]: " << setw (5)  << *rangePix << endl;
+      cout << "Test rangeSize parts[0]: " << setw (5)  << rangeSize << " Calculation(640*480*2)="<< (640*480*2) <<endl;
+         
+      
+      
+      uint16_t *conPix = (uint16_t *)parts[1].pData+ y * width + x;
+      cout << "Test parts[1]: " << setw (5)  << *conPix << endl;
+      int rangeSize1 = (int)parts[1].size;
+      cout << "Test rangeSize parts[1]: " << setw (5)  << rangeSize 
+	   << " Calculation(640*480*2)="<< (640*480*2) <<endl;
+      if(parts[1].partType == Intensity)
+	cout << "parts[1] == Intensity" <<endl;
+      if(parts[1].partType == Confidence)
+      	cout << "parts[1] == Confidence" <<endl;
+      
+      uint16_t *p = (uint16_t *)parts[0].pData;
+      cout<< "minDepth_:" << setprecision (5) << minDepth_ << endl;
+      cout<< "maxDepth_:" << setprecision (5) << maxDepth_ << endl;
+      
+      //float minDept_meter =  minDept_/100.
+      //float maxDepth_meter maxDepth_)/ std::numeric_limits<uint16_t>::max();
+      for(int i= 0; i < rangeSize; i++)
+	{
+	  //float f =  ((p[i] / std::numeric_limits<uint16_t>::max() ;
+	  float f = (minDepth_+(p[i]*maxDepth_)* (1./std::numeric_limits<uint16_t>::max()))*0.001;
+	  
+	  if(i%(rangeSize/2) == 0){
+	    cout<< "Value: p["<<i<<"]:" << setprecision (5) << p[i] << endl;
+	    cout<< "Value:" << setprecision (5) << f << endl;
+	  }
+	  if(i == 0){
+	      BOOST_LOG_TRIVIAL (info)  << "(width*y)+x))" << ((width*y)+x) << endl;
+	      if(i == ((width*y)+x)){
+	  	    cout<< "midValue: p["<<i<<"]:" << setprecision (5) << p[i] << endl;
+	  	    cout<< "midValue:" << setprecision (5) << f << endl;
+	  	  }
+	}
+	}
+      
     }
   return !stopSamplingLoop;
   // return m_nBuffersGrabbed < 10; // Indicate to stop acquisition when 10 buffers are grabbed
