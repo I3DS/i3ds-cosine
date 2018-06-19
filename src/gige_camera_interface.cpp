@@ -52,8 +52,6 @@ i3ds::GigeCameraInterface<MeasurementTopic>::GigeCameraInterface(Context::Ptr co
     resx_(resx),
     resy_(resy),
     free_running_(free_running),
-//,
-   // sampler_(std::bind(&i3ds::GigeCameraInterface::send_sample, this, std::placeholders::_1)),
     publisher_(context, node)
 {
   BOOST_LOG_TRIVIAL(info) << "GigeCameraInterface::GigeCameraInterface()";
@@ -61,10 +59,6 @@ i3ds::GigeCameraInterface<MeasurementTopic>::GigeCameraInterface(Context::Ptr co
   cameraInterface = new EbusCameraInterface(ipAddress.c_str(), camera_name.c_str(), free_running,
   						std::bind(&i3ds::GigeCameraInterface<MeasurementTopic>::send_sample, this,
   							  std::placeholders::_1, std::placeholders::_2));
- /* cameraInterface = new GigeCameraInterface("10.0.1.117",
-						std::bind(&i3ds::GigeCameraInterface<Codec>::send_sample, this,
-							  std::placeholders::_1, std::placeholders::_2));
-*/
 
 #endif
 
@@ -102,28 +96,24 @@ i3ds::GigeCameraInterface<MeasurementTopic>::GigeCameraInterface(Context::Ptr co
 
   pattern_enabled_ = false;
   pattern_sequence_ = 0;
-  //CameraMeasurement4MCodec::Initialize(frame_);
+
   MeasurementTopic::Codec::Initialize(frame_);
 #ifdef TOF_CAMERA
-  ;
-#else
-  frame_.frame_mode = mode_mono;
-  frame_.data_depth = 12;
-  frame_.pixel_size = 2;
-#endif
-
   frame_.region.size_x = resx_;
   frame_.region.size_y = resy_;
+  frame_.distances.nCount = resx_ * resy_ * 2;
+#else
+  frame_.descriptor.frame_mode = mode_mono;
+  frame_.descriptor.data_depth = 12;
+  frame_.descriptor.pixel_size = 2;
+  frame_.descriptor.region.size_x = resx_;
+  frame_.descriptor.region.size_y = resy_;
+  frame_.descriptor.image_count = 1;
+#endif
+
 
 #ifdef STEREO_CAMERA
-  frame_.image_left.nCount = resx_ * resy_ * 2;
-  frame_.image_right.nCount = resx_ * resy_ * 2;
-
-#elif defined(TOF_CAMERA)
-  frame_.distances.nCount = resx_ * resy_ * 2;
-
-#else
-  frame_.image.nCount = resx_ * resy_ * 2;
+  frame_.descriptor.image_count = 2;
 #endif
 }
 
@@ -149,23 +139,24 @@ i3ds::GigeCameraInterface<MeasurementTopic>::do_activate()
   PlanarRegion planarRegion = cameraInterface->getRegion();
 
 
- frame_.region.size_x = resx_ = planarRegion.size_x;
+
 
  // TODO Can simplifies
 
 
 #ifdef TOF_CAMERA
    frame_.region.size_y = resy_ = planarRegion.size_y;
+   frame_.region.size_x = resx_ = planarRegion.size_x;
  // frame_.image_left.nCount = resx_ * resy_ * 2;
  // frame_.image_right.nCount = resx_ * resy_ * 2;
  ;
 #elif defined(STEREO_CAMERA)
-  frame_.region.size_y = resy_ = planarRegion.size_y/2;
-  frame_.image_left.nCount = resx_ * resy_ * 2;
-  frame_.image_right.nCount = resx_ * resy_ * 2;
+  frame_.descriptor.region.size_y = resy_ = planarRegion.size_y/2;
+  frame_.descriptor.region.size_x = resx_ = planarRegion.size_x;
+
 #else
-  frame_.region.size_y = resy_ = planarRegion.size_y;
-  frame_.image.nCount = resx_ * resy_ * 2;
+  frame_.descriptor.region.size_y = resy_ = planarRegion.size_y;
+  frame_.descriptor.region.size_x = resx_ = planarRegion.size_x;
 #endif
 
 
@@ -215,8 +206,8 @@ i3ds::GigeCameraInterface<MeasurementTopic>::is_sampling_supported(SampleCommand
 }
 
 
-// \todo All parameter must be s at in client or thy wil default to 0. Do we need a don't care state?
-// \todo What if first parameter throws, then the second wil not be sat.
+// \todo All parameter must be s at in client or they will default to 0. Do we need a don't care state?
+// \todo What if first parameter throws, then the second will not be sat.
 template <class MeasurementTopic>
 void
 i3ds::GigeCameraInterface<MeasurementTopic>::handle_exposure(ExposureService::Data& command)
@@ -342,6 +333,10 @@ i3ds::GigeCameraInterface
 <MeasurementTopic>::send_sample(unsigned char *image, unsigned long timestamp_us)
 {
 
+#ifndef TOF_CAMERA
+  frame_.clear_images();
+#endif
+
   BOOST_LOG_TRIVIAL(info) << "GigeCameraInterface::send_sample()x";
 /* BOOST_LOG_TRIVIAL(info) << "Send: " << auto_exposure_enabled_ << timestamp_us;
   printf("frame_.image.arr: %p\n", frame_.image.arr);
@@ -360,36 +355,63 @@ i3ds::GigeCameraInterface
       PlanarRegion region;
   } ToFMeasurement500K;
   */
-
-
+  BOOST_LOG_TRIVIAL(info) << "TOF:send_sample() ";
   //memcpy(frame_.image.distances, image,  frame_.image.nCount);
   //memcpy(frame_.image.validity, image,  frame_.image.nCount);
-;
-BOOST_LOG_TRIVIAL(info) << "TOF:send_sample() ";
+  /*for(int i= 0; i < rangeSize; i++)
+ 	{
+ 	  //float f =  ((p[i] / std::numeric_limits<uint16_t>::max() ;
+ 	  float f = (minDepth_+(p[i]*maxDepth_)* (1./std::numeric_limits<uint16_t>::max()))*0.001;
+ 	  distances[i] = f;
+ 	  validity[i] = (p[i]==0)? out_range:ok;
+
+ 	  if(i%(rangeSize/2) == 0){
+ 	    cout<< "Value: p["<<i<<"]:" << setprecision (5) << p[i] << endl;
+ 	    cout<< "Value:" << setprecision (5) << f << endl;
+ 	  }
+ 	  if(i == 0){
+ 	      cout << "(width*y)+x))" << ((width*y)+x) << endl;
+ 	  if(i == ((width*y)+x)){
+ 	  	    cout<< "midValue: p["<<i<<"]:" << setprecision (5) << p[i] << endl;
+ 	  	    cout<< "midValue:" << setprecision (5) << f << endl;
+ 	  	  }
+ 	}
+*/
+  frame_.attributes.timestamp.microseconds = timestamp_us;
+  frame_.attributes.validity = sample_valid;
 #endif
 
+
+
 #ifdef STEREO_CAMERA
+
   BOOST_LOG_TRIVIAL(info) << "Stereo:send_sample() nCount left:right : "
-      << frame_.image_left.nCount
-      << frame_.image_right.nCount;
-  memcpy(frame_.image_left.arr, image,  frame_.image_left.nCount);
-  memcpy(frame_.image_right.arr, image + frame_.image_left.nCount,  frame_.image_right.nCount);
-  BOOST_LOG_TRIVIAL(info) << "send_sample()"<< +frame_.image_left.arr[100]<<" "<< +frame_.image_left.arr[101];
+      << image_size(frame_.descriptor);
+  frame_.append_image(image, image_size(frame_.descriptor));
+  frame_.append_image(image + image_size(frame_.descriptor), image_size(frame_.descriptor));
+  //memcpy(frame_.image_left.arr, image,  frame_.image_left.nCount);
+  //memcpy(frame_.image_right.arr, image + frame_.image_left.nCount,  frame_.image_right.nCount);
+  BOOST_LOG_TRIVIAL(info) << "send_sample()"<< +image_size(frame_.descriptor);
 #endif
 
 #ifndef STEREO_CAMERA
 #ifndef TOF_CAMERA
   BOOST_LOG_TRIVIAL(info) << "Other camera:send_sample() nCount  : "
-       << frame_.image.nCount;
-  printf("frame_.image.arr: %p\n", frame_.image.arr);
+       << image_size(frame_.descriptor);
+// printf("frame_.image.arr: %p\n", frame_.image.arr);
   printf("image: %p\n", image);
-  memcpy(frame_.image.arr, image,  frame_.image.nCount);
+  //memcpy(frame_.image.arr, image,  frame_.image.nCount);
+
+  frame_.append_image(image, image_size(frame_.descriptor));
   BOOST_LOG_TRIVIAL(info) << "Other camera:send_sample() end";
 #endif
 #endif
 
-  frame_.attributes.timestamp.microseconds = timestamp_us;
-  frame_.attributes.validity = sample_valid;
+#ifndef TOF_CAMERA
+  frame_.descriptor.attributes.timestamp.microseconds = timestamp_us;
+  frame_.descriptor.attributes.validity = sample_valid;
+#endif
+
   publisher_.Send<MeasurementTopic>(frame_);
 
   return true;

@@ -31,11 +31,11 @@ namespace po = boost::program_options;
 namespace logging = boost::log;
 
 #ifdef STEREO_CAMERA
- i3ds::GigeCameraInterface<i3ds::Camera::StereoFrame8MTopic> *camera;
+ i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic> *camera;
 #endif
 
 #ifdef HR_CAMERA
-  i3ds::GigeCameraInterface<i3ds::Camera::MonoFrame8MTopic> *camera;
+  i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic> *camera;
 #endif
 
 #ifdef TOF_CAMERA
@@ -46,7 +46,7 @@ namespace logging = boost::log;
 #ifndef STEREO_CAMERA
 #ifndef HR_CAMERA
 #ifndef TOF_CAMERA
- i3ds::GigeCameraInterface<i3ds::Camera::MonoFrame4MTopic> *camera;
+ i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic> *camera;
 #endif
 #endif
 #endif
@@ -149,7 +149,7 @@ int main(int argc, char** argv)
 
 
 #ifdef HR_CAMERA
-  camera = new i3ds::GigeCameraInterface<i3ds::Camera::MonoFrame8MTopic>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
+  camera = new i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
 #endif
 
 #ifdef TOF_CAMERA
@@ -157,14 +157,14 @@ camera = new i3ds::GigeCameraInterface<i3ds::ToFCamera::Measurement500KTopic>(co
 #endif
 
 #ifdef STEREO_CAMERA
-camera = new i3ds::GigeCameraInterface<i3ds::Camera::StereoFrame8MTopic>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
+camera = new i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
 #endif
 
 
 #ifndef TOF_CAMERA
 #ifndef HR_CAMERA
 #ifndef STEREO_CAMERA
-camera = new i3ds::GigeCameraInterface<i3ds::Camera::MonoFrame4MTopic>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
+camera = new i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
 #endif
 #endif
 #endif
