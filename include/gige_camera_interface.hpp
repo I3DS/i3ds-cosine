@@ -9,20 +9,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 
-
-// #define EBUS_CAMERA
-// #undef EBUS_CAMERA
-
-// #define STEREO_CAMERA 1
-// #undef STEREO_CAMERA
-
-// #define TOF_CAMERA
-//  #undef TOF_CAMERA
-
-// #define BASLER_HIGH_RES_CAMERA
-// #undef BASLER_HIGH_RES_CAMERA
-
-
 #ifndef __I3DS_EMULATED_CAMERA_HPP
 #define __I3DS_EMULATED_CAMERA_HPP
 
@@ -55,9 +41,6 @@ class GigeCameraInterface : public Camera
 {
 public:
 
-  //typedef Topic<128, CameraMeasurement4MCodec> ImageMeasurement;
-  //typedef Topic<128, Codec> ImageMeasurement;
-
   GigeCameraInterface(Context::Ptr context, NodeID id, int resx, int resy, std::string ipAddress, std::string camera_name,  bool free_running);
   virtual ~GigeCameraInterface();
 
@@ -74,8 +57,6 @@ public:
   virtual bool pattern_enabled() const {return pattern_enabled_;}
   virtual PatternSequence pattern_sequence() const {return pattern_sequence_;}
 
-  // Supported rate.
-  //virtual bool is_rate_supported(SampleRate rate);
 
   virtual bool is_sampling_supported(SampleCommand sample);
 
