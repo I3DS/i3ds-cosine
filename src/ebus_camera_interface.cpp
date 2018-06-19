@@ -34,16 +34,16 @@
 namespace po = boost::program_options;
 namespace logging = boost::log;
 
-int gStop;
 
-EbusCameraInterface::EbusCameraInterface(const char *connectionString, const char *camera_name, bool free_running, Operation operation)
+
+EbusCameraInterface::EbusCameraInterface(const char *connectionString, const char *camera_name,
+					 bool free_running, Operation operation)
 : ip_address_(connectionString), free_running_(free_running), operation_(operation)
 {
-    
+
   BOOST_LOG_TRIVIAL (info) << "EbusCameraInterface constructor";
   mConnectionID = PvString(camera_name);
-  
-  //mConnectionID = PvString(connectionString); // Similar to use different connection strings 
+
   BOOST_LOG_TRIVIAL (info) << "Connection String: "<< mConnectionID.GetAscii ();
 
 }
@@ -54,7 +54,6 @@ bool
 EbusCameraInterface::connect ()
 {
   BOOST_LOG_TRIVIAL (info) << "Connecting to camera";
-  //mConnectionID = "10.0.1.111";
 
   BOOST_LOG_TRIVIAL (info) << "--> ConnectDevice " << mConnectionID.GetAscii ();
 
@@ -64,6 +63,7 @@ EbusCameraInterface::connect ()
   if (!lResult.IsOK ())
     {
       BOOST_LOG_TRIVIAL (info) << "CreateAndConnect problem";
+      throw i3ds::CommandError(error_value, "Problem to connect to Camera.");
       return false;
     }
 
@@ -77,8 +77,8 @@ EbusCameraInterface::connect ()
   PvDeviceGEV* lDeviceGEV = dynamic_cast<PvDeviceGEV*> (mDevice);
   fetched_ipaddress = lDeviceGEV->GetIPAddress();
   BOOST_LOG_TRIVIAL (info) << "IP ADDRESS got from camera" << fetched_ipaddress.GetAscii();
-  
-  
+
+
   collectParameters ();
   trigger_interval_value_ = getParameter ("TriggerInterval");
   return true;
@@ -412,10 +412,6 @@ EbusCameraInterface::setIntParameter (PvString whichParameter, int64_t value)
 	      value << ".(Max: " << max <<")" ;
 	  throw i3ds::CommandError(error_value, errorDescription.str());
 
-
-
-	  BOOST_LOG_TRIVIAL (info) << "Rounding to max";
-	  value = max;
 	};
 
       int64_t min = getMinParameter (whichParameter);
@@ -428,12 +424,6 @@ EbusCameraInterface::setIntParameter (PvString whichParameter, int64_t value)
 	        value << ".(Min: " << min <<")";
 	  throw i3ds::CommandError(error_value, errorDescription.str());
 
-
-
-
-
-	  BOOST_LOG_TRIVIAL (info) << "Rounding to min";
-	  value = min;
 	};
       /// TODO: Increment also?
 
@@ -576,9 +566,9 @@ const int trigger_interval_factor = 30;
 void
 EbusCameraInterface::setTriggerInterval ()
 {
-  BOOST_LOG_TRIVIAL (info) << "Set TriggerInterval: trigger_interval_value_: " << trigger_interval_value_; 
+  BOOST_LOG_TRIVIAL (info) << "Set TriggerInterval: trigger_interval_value_: " << trigger_interval_value_;
   setIntParameter ("TriggerInterval", trigger_interval_value_);
-  
+
 }
 
 
@@ -588,9 +578,9 @@ EbusCameraInterface::checkTriggerInterval (int64_t period_us)
 {
   BOOST_LOG_TRIVIAL (info) << "Check TriggerInterval: Period: " << period_us <<" which equals "
       << 1e6/period_us<< "Hz";
-  
+
   int trigger_interval_value = period_us*trigger_interval_factor/1.0e6;
-  
+
 
    int min =  getMinParameter ("TriggerInterval");
    int max =  getMaxParameter ("TriggerInterval");
@@ -605,7 +595,7 @@ EbusCameraInterface::checkTriggerInterval (int64_t period_us)
    BOOST_LOG_TRIVIAL (info) << "TriggerInterval OK";
    trigger_interval_value_ = trigger_interval_value;
    return true;
-  
+
 
 }
 
@@ -713,13 +703,12 @@ EbusCameraInterface::do_start ()
       BOOST_LOG_TRIVIAL (info)  << " Tid:"<< samplingsTimeout_;
   }
   else{
-      setEnum ("AcquisitionMode", "SingleFrame");
-      setEnum ("TriggerMode", "EXT");
+      setEnum ("AcquisitionMode", "Continuous");
+      setEnum ("TriggerMode", "EXT_ONLY");
   }
   stopSamplingLoop = false;
   threadSamplingLoop = std::thread(&EbusCameraInterface::StartSamplingLoop, this);
 
- // TearDown (true);
 }
 
 /////-------------------------------- Streaming part
@@ -734,11 +723,11 @@ EbusCameraInterface::OpenStream ()
   BOOST_LOG_TRIVIAL (info) << "--> OpenStream: "<< mConnectionID.GetAscii ();
 
   // Creates and open the stream object based on the selected device.
-  PvResult lResult = PvResult::Code::INVALID_PARAMETER; 
-  
+  PvResult lResult = PvResult::Code::INVALID_PARAMETER;
+
   BOOST_LOG_TRIVIAL (info) << "--> OpenStream: "<<":"<<ip_address_<<":"
       << mConnectionID.GetAscii ()<<":"<<fetched_ipaddress.GetAscii();
-  
+
   mStream = PvStream::CreateAndOpen (fetched_ipaddress.GetAscii(), &lResult);
   if (!lResult.IsOK ())
     {
@@ -1050,7 +1039,7 @@ EbusCameraInterface::StartSamplingLoop ()
 	      // Timeout
 
 
-	      std::cout << "Image timeout " << lDoodle[lDoodleIndex] << std::endl;
+	      BOOST_LOG_TRIVIAL(info) << "Image timeout " << lDoodle[lDoodleIndex] << std::endl;
 	    }
 
 	  ++lDoodleIndex %= 6;
