@@ -11,6 +11,10 @@
 #include <iostream>
 #include <sstream>
 
+#include <memory>
+
+#include "cpp11_make_unique_template.hpp"
+
 
 #ifdef BASLER_CAMERA
 #ifdef TOF_CAMERA
@@ -19,13 +23,13 @@
 
 
 #ifdef HR_CAMERA
-#include "../include/basler_high_res_interface.hpp"
+#include "basler_high_res_interface.hpp"
 #endif
 #endif
 
 
 #ifdef EBUS_CAMERA
-#include "../include/ebus_camera_interface.hpp"
+#include "ebus_camera_interface.hpp"
 #endif
 
 
@@ -56,24 +60,25 @@ i3ds::GigeCameraInterface<MeasurementTopic>::GigeCameraInterface(Context::Ptr co
 {
   BOOST_LOG_TRIVIAL(info) << "GigeCameraInterface::GigeCameraInterface()";
 #ifdef EBUS_CAMERA
-  cameraInterface = new EbusCameraInterface(ipAddress.c_str(), camera_name.c_str(), free_running,
-  						std::bind(&i3ds::GigeCameraInterface<MeasurementTopic>::send_sample, this,
-  							  std::placeholders::_1, std::placeholders::_2));
-
+  cameraInterface = std::make_unique<EbusCameraInterface>(ipAddress.c_str(), camera_name.c_str(), free_running,
+    						std::bind(&i3ds::GigeCameraInterface<MeasurementTopic>::send_sample, this,
+    							  std::placeholders::_1, std::placeholders::_2)
+  					     );
 #endif
 
 #ifdef BASLER_CAMERA
 #ifdef HR_CAMERA
-  cameraInterface = new BaslerHighResInterface(ipAddress.c_str(), camera_name.c_str(), free_running,
-   						std::bind(&i3ds::GigeCameraInterface<MeasurementTopic>::send_sample, this,
- 							  std::placeholders::_1, std::placeholders::_2));
+
+  cameraInterface = std::make_unique<BaslerHighResInterface>(ipAddress.c_str(), camera_name.c_str(), free_running,
+     						std::bind(&i3ds::GigeCameraInterface<MeasurementTopic>::send_sample, this,
+   							  std::placeholders::_1, std::placeholders::_2));
 #endif
 
 
 #ifdef TOF_CAMERA
-  cameraInterface = new Basler_ToF_Interface(	ipAddress.c_str(),camera_name.c_str(), free_running,
-  						std::bind(&i3ds::GigeCameraInterface<MeasurementTopic>::send_sample, this,
-				std::placeholders::_1, std::placeholders::_2));
+  cameraInterface = std::make_unique<Basler_ToF_Interface>(ipAddress.c_str(),camera_name.c_str(), free_running,
+    						std::bind(&i3ds::GigeCameraInterface<MeasurementTopic>::send_sample, this,
+  							  std::placeholders::_1, std::placeholders::_2));
 #endif
 #endif
 

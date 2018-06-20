@@ -29,7 +29,7 @@
 
 #include "../include/basler_high_res_interface.hpp"
 
-
+#include "cpp11_make_unique_template.hpp"
 
 
 #define BOOST_LOG_DYN_LINK
@@ -37,6 +37,8 @@
 #include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
+
+
 
 
 using namespace std;
@@ -88,7 +90,7 @@ try{
   //  info.SetPropertyValue 	( "IpAddress", "10.0.1.115"); REMARK Alternative if one wants to use ipaddress
   //info.SetSerialNumber("21694497");
 
-  camera = new CBaslerGigEInstantCamera ( CTlFactory::GetInstance().CreateFirstDevice(info));
+  camera = std::make_unique<CBaslerGigEInstantCamera>( CTlFactory::GetInstance().CreateFirstDevice(info));
 
   BOOST_LOG_TRIVIAL (info) << "Camera Created.";
   //Print the model name of the camera.
@@ -597,7 +599,7 @@ BaslerHighResInterface::startSampling()
 int main(int argc, char* argv[])
 {
 
-  BaslerHighResInterface *baslerHRI =  new BaslerHighResInterface("abc","abc", NULL);
+  unique_ptr<BaslerHighResInterface> baslerHRI =  std::make_unique<BaslerHighResInterface>("abc","abc", NULL);
 
   try
     {

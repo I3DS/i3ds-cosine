@@ -18,6 +18,7 @@
 #include <i3ds/tof_camera_sensor.hpp>
 #include "i3ds/periodic.hpp"
 
+#include <memory>
 
 #ifdef EBUS_CAMERA
 #include "ebus_camera_interface.hpp"
@@ -101,16 +102,20 @@ private:
   typename MeasurementTopic::Codec::Data frame_;
 
 #ifdef EBUS_CAMERA
-  EbusCameraInterface * cameraInterface;
+  std::unique_ptr<EbusCameraInterface> cameraInterface;
+  //EbusCameraInterface * cameraInterface;
 #endif
 
 #ifdef BASLER_CAMERA
 #ifdef HR_CAMERA
-  BaslerHighResInterface * cameraInterface;
+ // BaslerHighResInterface * cameraInterface;
+  std::unique_ptr<BaslerHighResInterface> cameraInterface;
 #endif
 
 #ifdef TOF_CAMERA
-  Basler_ToF_Interface * cameraInterface;
+  //Basler_ToF_Interface * cameraInterface;
+  std::unique_ptr<Basler_ToF_Interface> cameraInterface;
+
 #endif
 #endif
 

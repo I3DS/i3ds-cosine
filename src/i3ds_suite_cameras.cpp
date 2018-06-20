@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <string>
 #include <vector>
+#include <memory>
 
 #include <boost/program_options.hpp>
 
@@ -26,30 +27,28 @@
 #include <boost/log/expressions.hpp>
 
 
+#include <cstddef>
+#include <memory>
+#include <type_traits>
+#include <utility>
+
+#include "cpp11_make_unique_template.hpp"
+
+
+
 
 namespace po = boost::program_options;
 namespace logging = boost::log;
 
-#ifdef STEREO_CAMERA
- i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic> *camera;
-#endif
-
-#ifdef HR_CAMERA
-  i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic> *camera;
-#endif
 
 #ifdef TOF_CAMERA
   i3ds::GigeCameraInterface<i3ds::ToFCamera::Measurement500KTopic> *camera;
+ // std::unique_ptr <i3ds::GigeCameraInterface<i3ds::ToFCamera::Measurement500KTopic>> camera2;
+#else
+ std::unique_ptr <i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic>> camera;
 #endif
 
 
-#ifndef STEREO_CAMERA
-#ifndef HR_CAMERA
-#ifndef TOF_CAMERA
- i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic> *camera;
-#endif
-#endif
-#endif
 
 volatile bool running;
 unsigned int node_id;
@@ -132,46 +131,22 @@ int main(int argc, char** argv)
 
   i3ds::Server server(context);
 
-  //camera = new i3ds::EmulatedCamera<i3ds::StereoCameraMeasurementCode
+
   BOOST_LOG_TRIVIAL(info) << "Using Nodeid: " << node_id;
   BOOST_LOG_TRIVIAL(info) << "Using IP ADDRESS: " << ip_address;
-  BOOST_LOG_TRIVIAL(info) << "User define camera name " << camera_name;
+  BOOST_LOG_TRIVIAL(info) << "User defined camera name " << camera_name;
 
 
-
-  // \ Todo Use Template?
-  //i3ds::EmulatedCamera<i3ds::CameraMeasurement4MCodec> camera(context, 10, 800, 600);
-  //camera = new i3ds::EmulatedCamera<i3ds::CameraMeasurement8MCodec>(context, 10, 800, 600);
-  //i3ds::EmulatedCamera<i3ds::StereoCameraMeasurement4MCodec> camera(context, 10, 800, 600);
-  BOOST_LOG_TRIVIAL(info) << "Before inst";
-
-
-
-
-#ifdef HR_CAMERA
-  camera = new i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
-#endif
 
 #ifdef TOF_CAMERA
-camera = new i3ds::GigeCameraInterface<i3ds::ToFCamera::Measurement500KTopic>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
-#endif
-
-#ifdef STEREO_CAMERA
-camera = new i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
-#endif
-
-
-#ifndef TOF_CAMERA
-#ifndef HR_CAMERA
-#ifndef STEREO_CAMERA
-camera = new i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
-#endif
-#endif
+  //camera = std::make_unique <i3ds::ToFCamera::Measurement500KTopic>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
+  camera = new i3ds::GigeCameraInterface<i3ds::ToFCamera::Measurement500KTopic>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
+#else
+  camera = std::make_unique <i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic>>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
 #endif
 
 
-  BOOST_LOG_TRIVIAL(info) << "test1bbbbbbbbbbb";
-  //camera.Attach(server);
+  BOOST_LOG_TRIVIAL(info) << "AttachServer";
   camera->Attach(server);
   running = true;
   signal(SIGINT, signal_handler);
@@ -184,6 +159,11 @@ camera = new i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic>(context, node_i
     }
 
   server.Stop();
+
+#ifdef TOF_CAMERA
+  //As long as we have not use smartpointer
+  delete camera;
+#endif
 
   return 0;
 }

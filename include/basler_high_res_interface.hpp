@@ -81,7 +81,7 @@ public:
 
 private:
 
-  Pylon::CBaslerGigEInstantCamera *camera;
+  std::unique_ptr <Pylon::CBaslerGigEInstantCamera> camera;
 
   // Automagically call PylonInitialize and PylonTerminate to ensure the pylon runtime system
   // is initialized during the lifetime of this object.

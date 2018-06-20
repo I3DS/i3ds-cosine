@@ -35,6 +35,8 @@ namespace po = boost::program_options;
 namespace logging = boost::log;
 
 
+bool samplingErrorFlag = false;
+char samplingErrorText[30];
 
 EbusCameraInterface::EbusCameraInterface(const char *connectionString, const char *camera_name,
 					 bool free_running, Operation operation)
@@ -47,8 +49,6 @@ EbusCameraInterface::EbusCameraInterface(const char *connectionString, const cha
   BOOST_LOG_TRIVIAL (info) << "Connection String: "<< mConnectionID.GetAscii ();
 
 }
-
-
 
 bool
 EbusCameraInterface::connect ()
@@ -734,7 +734,7 @@ EbusCameraInterface::OpenStream ()
       BOOST_LOG_TRIVIAL (info) << "Unable to open the stream";
       ostringstream errorDescription;
       errorDescription << "OpenStream: Unable to open the stream";
-      throw i3ds::CommandError(error_value, errorDescription.str());
+     // throw i3ds::CommandError(error_value, errorDescription.str());
 
       return false;
     }
@@ -754,7 +754,7 @@ EbusCameraInterface::OpenStream ()
       BOOST_LOG_TRIVIAL (info) << "Unable to start pipeline";
       ostringstream errorDescription;
       errorDescription << "OpenStream: Unable to start pipeline";
-      throw i3ds::CommandError(error_value, errorDescription.str());
+    //  throw i3ds::CommandError(error_value, errorDescription.str());
       return false;
     }
 
@@ -790,7 +790,7 @@ EbusCameraInterface::CloseStream ()
 	      BOOST_LOG_TRIVIAL (info) << "Unable to stop the pipeline.";
 	      ostringstream errorDescription;
 	      errorDescription << "CloseStream: Unable to stop the pipeline.";
-	      throw i3ds::CommandError(error_value, errorDescription.str());
+	    //  throw i3ds::CommandError(error_value, errorDescription.str());
 
 	    }
 	}
@@ -808,7 +808,7 @@ EbusCameraInterface::CloseStream ()
 	      BOOST_LOG_TRIVIAL (info) << "Unable to stop the stream.";
 	      ostringstream errorDescription;
 	      errorDescription << "CloseStream: Unable to stop the stream.";
-	      throw i3ds::CommandError(error_value, errorDescription.str());
+	   //   throw i3ds::CommandError(error_value, errorDescription.str());
 	    }
 	}
 
@@ -945,10 +945,12 @@ EbusCameraInterface::StartSamplingLoop ()
       if (mConnectionLost && (mDevice != NULL))
 	{
 	  // Device lost: no need to stop acquisition
+	  samplingErrorFlag = true;
+	  strncpy(samplingErrorText,"Connection to camera lost",25);
 	  TearDown (false);
 	}
 
-      // Only set up tream first time and do not try to reconnect
+      // Only set up stream first time and do not try to reconnect
       if (first == true)
 	{
 	  BOOST_LOG_TRIVIAL (info) << "First sample-> round initialise";
@@ -960,6 +962,9 @@ EbusCameraInterface::StartSamplingLoop ()
 	      if (!StartAcquisition ())
 		{
 		  BOOST_LOG_TRIVIAL (info) << "--> StartAcquisition error";
+		  samplingErrorFlag = true;
+		  strncpy(samplingErrorText,"StartAcqisition error", 25);
+
 		  TearDown (false);
 		}
 	    }
