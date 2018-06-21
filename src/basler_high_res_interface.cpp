@@ -45,13 +45,18 @@ using namespace std;
 using namespace Pylon;
 namespace logging = boost::log;
 
-BaslerHighResInterface::BaslerHighResInterface(const char *connectionString, const char *cameraName,
+BaslerHighResInterface::BaslerHighResInterface(std::string const &connectionString, std::string const & cameraName,
 					       bool free_running, Operation operation)
-: cameraName(cameraName), free_running_(free_running), operation_(operation)
+: cameraName_(cameraName), free_running_(free_running), operation_(operation)
 
 {
   BOOST_LOG_TRIVIAL (info) << "BaslerHighResInterface constructor";
-  BOOST_LOG_TRIVIAL (info) << "Camera Name: "<< cameraName;
+  //cameraName_ = make_unique<const char *>(cameraName);
+ // std::unique_ptr<unsigned char[]> xxxz = make_unique<string>(cameraName.length());
+
+// BOOST_LOG_TRIVIAL (info) << "xxxxz: "<< xxxz;
+ BOOST_LOG_TRIVIAL (info) << "Camera Name_(constructor parameter): "<< cameraName;
+BOOST_LOG_TRIVIAL (info) << "Camera Name_(constructor local variable): "<< cameraName_;
 
 
   /*
@@ -85,7 +90,9 @@ BaslerHighResInterface::initialiseCamera() {
 
 try{
   CDeviceInfo info;
-  info.SetUserDefinedName(cameraName);
+ //n BOOST_LOG_TRIVIAL (info) << "cn" << cameraName_.get();
+ //n info.SetUserDefinedName(cameraName_.get());
+  info.SetUserDefinedName("i3ds-basler-hr");
   info.SetDeviceClass( Pylon::CBaslerGigEInstantCamera::DeviceClass());
   //  info.SetPropertyValue 	( "IpAddress", "10.0.1.115"); REMARK Alternative if one wants to use ipaddress
   //info.SetSerialNumber("21694497");
@@ -118,6 +125,11 @@ try{
 
   //Switching format
   camera->PixelFormat.SetValue(Basler_GigECamera::PixelFormat_Mono12);
+
+  // Setting to a reasonable frequency.
+  // the preprogrammed sample frequency of 410 Hz will make the system unstable.
+  camera->AcquisitionFrameRateAbs.SetValue(1.0);
+
   sample_rate_in_Hz_ = camera->AcquisitionFrameRateAbs.GetValue();
 
 }catch (GenICam::GenericException &e)

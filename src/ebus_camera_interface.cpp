@@ -10,7 +10,7 @@
 
 #include <iostream>
 
-#include "../include/ebus_camera_interface.hpp"
+#include "ebus_camera_interface.hpp"
 
 #include <boost/program_options.hpp>
 #include <thread>
@@ -38,13 +38,13 @@ namespace logging = boost::log;
 bool samplingErrorFlag = false;
 char samplingErrorText[30];
 
-EbusCameraInterface::EbusCameraInterface(const char *connectionString, const char *camera_name,
+EbusCameraInterface::EbusCameraInterface(std::string const &connectionString, std::string const & camera_name,
 					 bool free_running, Operation operation)
 : ip_address_(connectionString), free_running_(free_running), operation_(operation)
 {
 
   BOOST_LOG_TRIVIAL (info) << "EbusCameraInterface constructor";
-  mConnectionID = PvString(camera_name);
+  mConnectionID = PvString(camera_name.c_str());
 
   BOOST_LOG_TRIVIAL (info) << "Connection String: "<< mConnectionID.GetAscii ();
 

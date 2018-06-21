@@ -5,7 +5,9 @@
 #include <thread>
 #include <stdlib.h>
 
-#include  "../include/basler_tof_interface.hpp"
+#include "basler_tof_interface.hpp"
+
+#include "cpp11_make_unique_template.hpp"
 
 // REMARK: Must be set different to point to different library than the other Basler cameras
 // or it will not run.
@@ -25,8 +27,8 @@ using namespace std;
 
 // TODO Check Throwing in sampling loop. May be the errorhandling should return and set a global flag as in example.?
 
-Basler_ToF_Interface::Basler_ToF_Interface (const char *connectionString,
-					    const char * camera_name,
+Basler_ToF_Interface::Basler_ToF_Interface (std::string const & connectionString,
+					    std::string const & camera_name,
 					    bool free_running,
 					    Operation operation) :
     mConnectionID (connectionString), camera_name (camera_name), free_running_ (
@@ -410,7 +412,7 @@ Basler_ToF_Interface::do_start ()
     {
       setTriggerModeOn (false);
       setTriggerInterval_in_Hz (samplingsRate_in_Hz_);
-     
+
     }
   else
     {
@@ -421,7 +423,7 @@ Basler_ToF_Interface::do_start ()
   maxDepth_ = getMaxDepth();
 
   threadSamplingLoop = std::thread (&Basler_ToF_Interface::StartSamplingLoop,
-				    this);  
+				    this);
   }
 
 void
@@ -582,14 +584,13 @@ Basler_ToF_Interface::onImageGrabbed (GrabResult grabResult, BufferParts parts)
       
     }
   return !stopSamplingLoop;
-  // return m_nBuffersGrabbed < 10; // Indicate to stop acquisition when 10 buffers are grabbed
 }
 
 #ifndef TOF_CAMERA
 int
 main (int argc, char* argv[])
 {
-  Basler_ToF_Interface *basler_ToF_Interface = new Basler_ToF_Interface ();
+  auto basler_ToF_Interface = std::make_unique<Basler_ToF_Interface>();
   basler_ToF_Interface->do_activate ();
   basler_ToF_Interface->do_start ();
   sleep (30);

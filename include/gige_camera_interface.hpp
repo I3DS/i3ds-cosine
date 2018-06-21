@@ -42,7 +42,7 @@ class GigeCameraInterface : public Camera
 {
 public:
 
-  GigeCameraInterface(Context::Ptr context, NodeID id, int resx, int resy, std::string ipAddress, std::string camera_name,  bool free_running);
+  GigeCameraInterface(Context::Ptr context, NodeID id, int resx, int resy, std::string const & ipAddress, std::string const & camera_name,  bool free_running);
   virtual ~GigeCameraInterface();
 
   // Getters.

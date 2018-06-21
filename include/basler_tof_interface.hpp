@@ -33,7 +33,7 @@ class Basler_ToF_Interface
   //typedef Topic<128, ToFMeasurement500KCodec> ToFMeasurement;
 
     void Basler_ToF_Interface2 ();
-    Basler_ToF_Interface(const char *connectionString, const char *camera_name, bool free_running, Operation operation);
+    Basler_ToF_Interface(const std::string & connectionString, std::string const &camera_name, bool free_running, Operation operation);
     ~Basler_ToF_Interface ();
     void do_activate();
     void do_start();
@@ -86,8 +86,8 @@ class Basler_ToF_Interface
 
     std::thread threadSamplingLoop;
     bool stopSamplingLoop;
-    const char * mConnectionID;
-    const char * camera_name;
+    const std::string mConnectionID;
+    const std::string camera_name;
 
     bool free_running_;
     Operation operation_;

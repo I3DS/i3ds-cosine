@@ -42,8 +42,7 @@ namespace logging = boost::log;
 
 
 #ifdef TOF_CAMERA
-  i3ds::GigeCameraInterface<i3ds::ToFCamera::Measurement500KTopic> *camera;
- // std::unique_ptr <i3ds::GigeCameraInterface<i3ds::ToFCamera::Measurement500KTopic>> camera2;
+  std::unique_ptr <i3ds::GigeCameraInterface<i3ds::ToFCamera::Measurement500KTopic>> camera;
 #else
  std::unique_ptr <i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic>> camera;
 #endif
@@ -139,8 +138,7 @@ int main(int argc, char** argv)
 
 
 #ifdef TOF_CAMERA
-  //camera = std::make_unique <i3ds::ToFCamera::Measurement500KTopic>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
-  camera = new i3ds::GigeCameraInterface<i3ds::ToFCamera::Measurement500KTopic>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
+  camera = std::make_unique <i3ds::GigeCameraInterface<i3ds::ToFCamera::Measurement500KTopic>>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
 #else
   camera = std::make_unique <i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic>>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
 #endif
@@ -159,11 +157,6 @@ int main(int argc, char** argv)
     }
 
   server.Stop();
-
-#ifdef TOF_CAMERA
-  //As long as we have not use smartpointer
-  delete camera;
-#endif
 
   return 0;
 }

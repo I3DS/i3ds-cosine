@@ -51,7 +51,7 @@ namespace logging = boost::log;
 
 template <class MeasurementTopic>
 i3ds::GigeCameraInterface<MeasurementTopic>::GigeCameraInterface(Context::Ptr context, NodeID node, int resx, int resy,
-					     std::string ipAddress, std::string camera_name, bool free_running)
+					     std::string const &ipAddress, const std::string & camera_name, bool free_running)
   : Camera(node),
     resx_(resx),
     resy_(resy),
@@ -60,7 +60,7 @@ i3ds::GigeCameraInterface<MeasurementTopic>::GigeCameraInterface(Context::Ptr co
 {
   BOOST_LOG_TRIVIAL(info) << "GigeCameraInterface::GigeCameraInterface()";
 #ifdef EBUS_CAMERA
-  cameraInterface = std::make_unique<EbusCameraInterface>(ipAddress.c_str(), camera_name.c_str(), free_running,
+  cameraInterface = std::make_unique<EbusCameraInterface>(ipAddress, camera_name, free_running,
     						std::bind(&i3ds::GigeCameraInterface<MeasurementTopic>::send_sample, this,
     							  std::placeholders::_1, std::placeholders::_2)
   					     );
@@ -69,14 +69,14 @@ i3ds::GigeCameraInterface<MeasurementTopic>::GigeCameraInterface(Context::Ptr co
 #ifdef BASLER_CAMERA
 #ifdef HR_CAMERA
 
-  cameraInterface = std::make_unique<BaslerHighResInterface>(ipAddress.c_str(), camera_name.c_str(), free_running,
+  cameraInterface = std::make_unique<BaslerHighResInterface>(ipAddress, camera_name, free_running,
      						std::bind(&i3ds::GigeCameraInterface<MeasurementTopic>::send_sample, this,
    							  std::placeholders::_1, std::placeholders::_2));
 #endif
 
 
 #ifdef TOF_CAMERA
-  cameraInterface = std::make_unique<Basler_ToF_Interface>(ipAddress.c_str(),camera_name.c_str(), free_running,
+  cameraInterface = std::make_unique<Basler_ToF_Interface>(ipAddress, camera_name, free_running,
     						std::bind(&i3ds::GigeCameraInterface<MeasurementTopic>::send_sample, this,
   							  std::placeholders::_1, std::placeholders::_2));
 #endif

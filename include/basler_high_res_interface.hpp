@@ -39,7 +39,7 @@ class BaslerHighResInterface
 {
 public:
 
-  BaslerHighResInterface(const char *connectionString, const char *camera_name, bool free_running, Operation operation);
+  BaslerHighResInterface(std::string const & connectionString,  std::string const  &camera_name, bool free_running, Operation operation);
   void initialiseCamera();
   void stopSampling();
   void startSamplingLoop();
@@ -89,11 +89,14 @@ private:
 
   std::thread threadSamplingLoop;
 
-  const char *cameraName;
+  //const char *cameraName;
+  //std::unique_ptr<std::string> cameraName_;
+ std::string cameraName_;
+
 
   // Sample operation.
 
-   char *ConnectionID;
+   std::unique_ptr<char> ConnectionID;
    bool free_running_;
    Operation operation_;
 

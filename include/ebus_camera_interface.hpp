@@ -45,7 +45,7 @@
 class EbusCameraInterface: protected PvDeviceEventSink {
 
   public:
-    EbusCameraInterface(const char *connectionString, const char *camera_name, bool free_running, Operation operation);
+    EbusCameraInterface(std::string const &connectionString, std::string const &camera_name, bool free_running, Operation operation);
 
     bool connect();
     void collectParameters();
@@ -135,7 +135,7 @@ class EbusCameraInterface: protected PvDeviceEventSink {
     bool stopSamplingLoop;
     std::thread threadSamplingLoop;
 
-    const char *ip_address_;
+    const std::string ip_address_;
 
 
      PvString fetched_ipaddress;
