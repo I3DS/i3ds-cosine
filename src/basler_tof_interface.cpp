@@ -516,7 +516,7 @@ Basler_ToF_Interface::onImageGrabbed (GrabResult grabResult, BufferParts parts)
       const int height = (int) parts[0].height;
       const int x = (int) (0.5 * width);
       const int y = (int) (0.5 * height);
-      CToFCamera::Coord3D *p3DCoordinate = (CToFCamera::Coord3D*) parts[0].pData
+     /* CToFCamera::Coord3D *p3DCoordinate = (CToFCamera::Coord3D*) parts[0].pData
 	  + y * width + x;
       uint16_t *pIntensity = (uint16_t*) parts[1].pData + y * width + x;
       uint16_t *pConfidence = (uint16_t*) parts[2].pData + y * width + x;
@@ -532,56 +532,66 @@ Basler_ToF_Interface::onImageGrabbed (GrabResult grabResult, BufferParts parts)
       else
 	cout << "x=   n/a y=   n/a z=   n/a";
 
+*/
    /*   cout << " intensity=" << setw (5) << *pIntensity << " confidence="
 	  << setw (5) << *pConfidence << endl;
 */
-      BOOST_LOG_TRIVIAL (info)  << "BASLERTOF::before operationXXX";
+
       clock::time_point next = clock::now ();
       BOOST_LOG_TRIVIAL (info)  << "BASLERTOF::before operation";
       // operation_((unsigned char *)&parts, std::chrono::duration_cast<std::chrono::microseconds>(next.time_since_epoch()).count());
-  
-      
+
+
       uint16_t *rangePix = (uint16_t *)parts[0].pData+ y * width + x;
       int rangeSize = (int)parts[0].size;
-      cout << "Test range parts[0]: " << setw (5)  << *rangePix << endl;
-      cout << "Test rangeSize parts[0]: " << setw (5)  << rangeSize << " Calculation(640*480*2)="<< (640*480*2) <<endl;
-         
-      
-      
+      BOOST_LOG_TRIVIAL (info) << "Test range parts[0]: " << setw (5)  << *rangePix;
+      BOOST_LOG_TRIVIAL (info) << "Test rangeSize parts[0]: " << setw (5)  << rangeSize << " Calculation(640*480*2)="<< (640*480*2);
+
+
+
       uint16_t *conPix = (uint16_t *)parts[1].pData+ y * width + x;
-      cout << "Test parts[1]: " << setw (5)  << *conPix << endl;
+      BOOST_LOG_TRIVIAL (info)  << "Test parts[1]: " << setw (5)  << *conPix;
       int rangeSize1 = (int)parts[1].size;
-      cout << "Test rangeSize parts[1]: " << setw (5)  << rangeSize 
-	   << " Calculation(640*480*2)="<< (640*480*2) <<endl;
+      BOOST_LOG_TRIVIAL (info) <<  "Test rangeSize parts[1]: " << setw (5)  << rangeSize
+	   << " Calculation(640*480*2)="<< (640*480*2);
       if(parts[1].partType == Intensity)
-	cout << "parts[1] == Intensity" <<endl;
+	 BOOST_LOG_TRIVIAL (info) << "parts[1] == Intensity";
       if(parts[1].partType == Confidence)
-      	cout << "parts[1] == Confidence" <<endl;
-      
+	 BOOST_LOG_TRIVIAL (info) << "parts[1] == Confidence";
+
       uint16_t *p = (uint16_t *)parts[0].pData;
-      cout<< "minDepth_:" << setprecision (5) << minDepth_ << endl;
-      cout<< "maxDepth_:" << setprecision (5) << maxDepth_ << endl;
-      
+      BOOST_LOG_TRIVIAL (info) << "minDepth_:" << setprecision (5) << minDepth_;
+      BOOST_LOG_TRIVIAL (info) << "maxDepth_:" << setprecision (5) << maxDepth_;
+
       //float minDept_meter =  minDept_/100.
       //float maxDepth_meter maxDepth_)/ std::numeric_limits<uint16_t>::max();
-      for(int i= 0; i < rangeSize; i++)
+      int numberOfPixels = width*height;
+      float arr[1000000];
+      bool confidence[1000000];
+      uint16_t *pConfidenceArr = (uint16_t *)parts[1].pData;
+
+      for(int i= 0; i < numberOfPixels; i++)
 	{
-	  //float f =  ((p[i] / std::numeric_limits<uint16_t>::max() ;
 	  float f = (minDepth_+(p[i]*maxDepth_)* (1./std::numeric_limits<uint16_t>::max()))*0.001;
-	  
-	  if(i%(rangeSize/2) == 0){
-	    cout<< "Value: p["<<i<<"]:" << setprecision (5) << p[i] << endl;
-	    cout<< "Value:" << setprecision (5) << f << endl;
+	  arr[i] = f;
+
+	  //confidence
+	  if((p[i]==0) || (pConfidenceArr[i] == 0))
+	    {
+	      confidence[i] = false;
+	  }else
+	    {
+	      confidence[i] = true;
+	    }
+
+
+	  if(i==(numberOfPixels/2- x)){
+	      BOOST_LOG_TRIVIAL (info) << "Mid-pixel p["<<i<<"]:" << setprecision (5) << p[i] <<" => "
+		<< setprecision (5) << f << " [meter]"
+		<< " Confidence: " <<std::boolalpha << confidence[i];
 	  }
-	  if(i == 0){
-	      BOOST_LOG_TRIVIAL (info)  << "(width*y)+x))" << ((width*y)+x) << endl;
-	      if(i == ((width*y)+x)){
-	  	    cout<< "midValue: p["<<i<<"]:" << setprecision (5) << p[i] << endl;
-	  	    cout<< "midValue:" << setprecision (5) << f << endl;
-	  	  }
 	}
-	}
-      
+
     }
   return !stopSamplingLoop;
 }
