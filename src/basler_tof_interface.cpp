@@ -25,7 +25,7 @@ using namespace std;
 
 // TODO Move identifying parameter and which to use?
 
-// TODO Check Throwing in sampling loop. May be the errorhandling should return and set a global flag as in example.?
+// TODO Check Throwing in sampling loop. May be the error handling should return and set a global flag as in example.?
 
 Basler_ToF_Interface::Basler_ToF_Interface (std::string const & connectionString,
 					    std::string const & camera_name,
@@ -34,8 +34,8 @@ Basler_ToF_Interface::Basler_ToF_Interface (std::string const & connectionString
     mConnectionID (connectionString), camera_name (camera_name), free_running_ (
 	free_running), operation_ (operation)
 {
-  cout << "Basler_ToF_Interface constructor\n";
-  cout << "Connection String: " << mConnectionID << "\n";
+  BOOST_LOG_TRIVIAL (info) << "Basler_ToF_Interface constructor";
+  BOOST_LOG_TRIVIAL (info) << "Connection String: " << mConnectionID;
   Basler_ToF_Interface2 ();
 
 }
@@ -45,11 +45,11 @@ Basler_ToF_Interface::Basler_ToF_Interface2 ()
 {
   // Must be set different than the other basler cameras
   // GENICAM_GENTL64_PATH=/opt/BaslerToF/lib64/gentlproducer/gtl
-  cout << "Setting environment variable: GENICAM_GENTL64_PATH to :"
+  BOOST_LOG_TRIVIAL (info) << "Setting environment variable: GENICAM_GENTL64_PATH to :"
       << GENICAM_GENTL64_PATH << std::endl;
   setenv ("GENICAM_GENTL64_PATH", GENICAM_GENTL64_PATH, 1);
-  cout << "Initialising camera environment for ToF camera"
-      << GENICAM_GENTL64_PATH << std::endl;
+  BOOST_LOG_TRIVIAL (info)  << "Initialising camera environment for ToF camera"
+      << GENICAM_GENTL64_PATH;
   CToFCamera::InitProducer ();
 }
 
@@ -59,7 +59,7 @@ Basler_ToF_Interface::~Basler_ToF_Interface ()
   // Note: Don't call TerminateProducer() until the destructor of the CToFCamera
   // class has been called. The destructor may require resources which may not
   // be available anymore after TerminateProducer() has been called.
-  cout << "Terminating camera environment for ToF camera" << endl;
+  BOOST_LOG_TRIVIAL (info) << "Terminating camera environment for ToF camera" << endl;
   if (CToFCamera::IsProducerInitialized ())
     {
       CToFCamera::TerminateProducer ();  // Won't throw any exceptions
@@ -67,7 +67,6 @@ Basler_ToF_Interface::~Basler_ToF_Interface ()
 }
 
 //TODO Not found?
-
 int64_t
 Basler_ToF_Interface::getShutterTime ()
 {
@@ -119,13 +118,12 @@ Basler_ToF_Interface::getRegion ()
   region.size_y = size_y;
 
   return region;
-
 }
 
 void
 Basler_ToF_Interface::setTriggerInterval ()
 {
-  BOOST_LOG_TRIVIAL (info) << "setting samplingsrate " << samplingsRate_in_Hz_;
+  BOOST_LOG_TRIVIAL (info) << "Setting sampling rate " << samplingsRate_in_Hz_;
 
   GenApi::CFloatPtr ptrTriggerInterval (
       m_Camera.GetParameter ("AcquisitionFrameRate"));
@@ -135,12 +133,15 @@ Basler_ToF_Interface::setTriggerInterval ()
 void
 Basler_ToF_Interface::setTriggerInterval_in_Hz (float rate_in_Hz)
 {
-  BOOST_LOG_TRIVIAL (info) << "setting samplingsrate " << rate_in_Hz;
+  BOOST_LOG_TRIVIAL (info) << "setting sampling rate " << rate_in_Hz;
 
   GenApi::CFloatPtr ptrTriggerInterval (
       m_Camera.GetParameter ("AcquisitionFrameRate"));
   ptrTriggerInterval->SetValue (rate_in_Hz);
 }
+
+
+// TODO where is the Conversion float uS?
 
 float
 Basler_ToF_Interface::getSamplingsRate ()
@@ -184,8 +185,8 @@ Basler_ToF_Interface::getAutoExposureEnabled ()
 {
   GenApi::CEnumerationPtr ptrAutoExposureEnabled (
       m_Camera.GetParameter ("ExposureAuto"));
-  const char *as = ptrAutoExposureEnabled->ToString ();
-  if (strncmp (as, "Continuous", 4) == 0)
+  const char *returnedString = ptrAutoExposureEnabled->ToString ();
+  if (strncmp (returnedString, "Continuous", 4) == 0)
     {
       return true;
     }
@@ -246,7 +247,7 @@ Basler_ToF_Interface::setRegionEnabled (bool regionEnabled)
   return;
 }
 
-// Used in tof Camera
+// Not Used in tof Camera
 bool
 Basler_ToF_Interface::getRegionEnabled ()
 {
@@ -317,7 +318,7 @@ Basler_ToF_Interface::connect ()
 void
 Basler_ToF_Interface::do_activate ()
 {
-  cout << "do_activate ()\n";
+  BOOST_LOG_TRIVIAL (info) << "do_activate ()";
   try
     {
       // Open the first camera found, i.e., establish a connection to the camera device.
@@ -407,7 +408,7 @@ Basler_ToF_Interface::do_activate ()
 void
 Basler_ToF_Interface::do_start ()
 {
-  cout << "do_start()\n";
+  BOOST_LOG_TRIVIAL (info) << "do_start()";
   if (free_running_)
     {
       setTriggerModeOn (false);
@@ -435,6 +436,21 @@ Basler_ToF_Interface::setTriggerSourceToLine1 ()
   ptrAutoExposureEnabled->FromString ("Line1");
 }
 
+
+int64_t
+Basler_ToF_Interface::getMinDepthLocalInMM()
+{
+  return minDepth_;
+}
+
+int64_t
+Basler_ToF_Interface::getMaxDepthLocalInMM()
+{
+  return maxDepth_;
+}
+
+
+
 void
 Basler_ToF_Interface::do_stop ()
 {
@@ -442,9 +458,9 @@ Basler_ToF_Interface::do_stop ()
   stopSamplingLoop = true;
   if (threadSamplingLoop.joinable ())
     {
-      cout << "waiting for join()\n";
+      BOOST_LOG_TRIVIAL (info) << "waiting for join()";
       threadSamplingLoop.join ();
-      cout << "did join()\n";
+      BOOST_LOG_TRIVIAL (info)  << "did join()";
     }
   // m_Camera.Close();
 }
@@ -539,7 +555,7 @@ Basler_ToF_Interface::onImageGrabbed (GrabResult grabResult, BufferParts parts)
 
       clock::time_point next = clock::now ();
       BOOST_LOG_TRIVIAL (info)  << "BASLERTOF::before operation";
-      // operation_((unsigned char *)&parts, std::chrono::duration_cast<std::chrono::microseconds>(next.time_since_epoch()).count());
+      operation_((unsigned char *)&parts, std::chrono::duration_cast<std::chrono::microseconds>(next.time_since_epoch()).count());
 
 
       uint16_t *rangePix = (uint16_t *)parts[0].pData+ y * width + x;
