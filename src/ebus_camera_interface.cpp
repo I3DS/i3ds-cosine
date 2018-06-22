@@ -585,7 +585,7 @@ EbusCameraInterface::checkTriggerInterval (int64_t period_us)
    int min =  getMinParameter ("TriggerInterval");
    int max =  getMaxParameter ("TriggerInterval");
    BOOST_LOG_TRIVIAL (info) << "checkTriggerInterval: min: " << min << " max:" << max;
-   BOOST_LOG_TRIVIAL (info) << "Triggerinterval value tested: " << trigger_interval_value;
+   BOOST_LOG_TRIVIAL (info) << "TriggerInterval value tested: " << trigger_interval_value;
 
    if(trigger_interval_value < min || trigger_interval_value > max)
      {
