@@ -10,14 +10,16 @@
 
 #include <iostream>
 #include <sstream>
-
+#include <iomanip>
 #include <memory>
+
 
 #include "cpp11_make_unique_template.hpp"
 
 
 #ifdef BASLER_CAMERA
 #ifdef TOF_CAMERA
+#include <ConsumerImplHelper/ToFCamera.h>
 #include "basler_tof_interface.hpp"
 #endif
 
@@ -353,6 +355,12 @@ i3ds::GigeCameraInterface
 
 #ifdef TOF_CAMERA
   /*
+   typedef enum {
+    valid_measurement = 0,
+    too_far = 1,
+    too_near = 2,
+    measurement_error = 3
+} Depth_validity_t;
   typedef struct {
       SampleAttributes attributes;
       ToFMeasurement500K_distances distances;
@@ -361,29 +369,83 @@ i3ds::GigeCameraInterface
   } ToFMeasurement500K;
   */
   BOOST_LOG_TRIVIAL(info) << "TOF:send_sample() ";
+
+  //vector<MyClass*>& v = *reinterpret_cast<vector<MyClass*> *>(voidPointerName);
+  //std::vector<PartInfo*>& parts = *reinterpret_cast<std::vector<PartInfo*> *>(image);
+  //auto parts = (BufferParts *)image;
+  BufferParts *parts = reinterpret_cast<BufferParts *> (image);
+  PartInfo partInfo0 =  (*parts)[0];
+
+  // TODO Is Copy or assignment
+  BufferParts p = *parts;
+  int x = partInfo0.width;
+
+  uint16_t *depth = (uint16_t *)p[0].pData;
+
+  int width =  (*parts)[0].width;
+  int height =  (*parts)[0].height;
+
+  int ht =  p[0].height;
+  const int numberOfPixels = width * height;
+  BOOST_LOG_TRIVIAL(info) << "width:  "<< width << "height: " << height << "xx: " << x <<
+      "ht"<< ht <<" p[0].width: " << p[0].width;
+
+
+  // just checks for  configuration of camera.
+  if(p[0].partType != Range)
+    {
+      BOOST_LOG_TRIVIAL(info) << "Error!! Wrong  initialization of ToF Camera data type";
+    }
+  if(p[1].partType != Confidence)
+    {
+    BOOST_LOG_TRIVIAL(info) << "Error!! Wrong  initialization of ToF Camera data type";
+     }
+
+  uint16_t *pConfidenceArr = (uint16_t *)p[1].pData;
+  int64_t minDepth = cameraInterface->getMinDepthLocalInMM();
+  int64_t maxDepth = cameraInterface->getMaxDepthLocalInMM();
+
+  BOOST_LOG_TRIVIAL(info) << "minDepth: " << minDepth << " maxDepth: " << maxDepth;
+
+  for(int i= 0; i < numberOfPixels; i++)
+  	{
+	  //Calculate distance
+  	  float f = (minDepth+(depth[i]*maxDepth)* (1./std::numeric_limits<uint16_t>::max()))*0.001;
+	  frame_.distances.arr[i] = f;
+
+  	  // Check confidence
+  	  if((depth[i] == 0) || (pConfidenceArr[i] == 0))
+  	    {
+  	      frame_.validity.arr[i] = measurement_error ; //TODO Correct status?
+  	    }
+
+  	  else
+  	    {
+  	      frame_.validity.arr[i] = valid_measurement;
+  	    }
+
+
+  	  if(i==(numberOfPixels/2- x/2)){
+  	      BOOST_LOG_TRIVIAL (info) << "Mid-pixel  frame_.distances.arr[i][" <<i << "]:" << std::setprecision(5) <<
+  		  frame_.distances.arr[i] <<
+		  " => " <<
+		  std::setprecision (5) << f << " [meter]" <<
+		" Confidence: " <<  ((frame_.validity.arr[i]== valid_measurement) ? "Ok":"Error");
+  	  }
+
+  	}
+
+
   //memcpy(frame_.image.distances, image,  frame_.image.nCount);
   //memcpy(frame_.image.validity, image,  frame_.image.nCount);
-  /*for(int i= 0; i < rangeSize; i++)
- 	{
- 	  //float f =  ((p[i] / std::numeric_limits<uint16_t>::max() ;
- 	  float f = (minDepth_+(p[i]*maxDepth_)* (1./std::numeric_limits<uint16_t>::max()))*0.001;
- 	  distances[i] = f;
- 	  validity[i] = (p[i]==0)? out_range:ok;
 
- 	  if(i%(rangeSize/2) == 0){
- 	    cout<< "Value: p["<<i<<"]:" << setprecision (5) << p[i] << endl;
- 	    cout<< "Value:" << setprecision (5) << f << endl;
- 	  }
- 	  if(i == 0){
- 	      cout << "(width*y)+x))" << ((width*y)+x) << endl;
- 	  if(i == ((width*y)+x)){
- 	  	    cout<< "midValue: p["<<i<<"]:" << setprecision (5) << p[i] << endl;
- 	  	    cout<< "midValue:" << setprecision (5) << f << endl;
- 	  	  }
- 	}
-*/
+
+
   frame_.attributes.timestamp.microseconds = timestamp_us;
   frame_.attributes.validity = sample_valid;
+
+  return true;
+
 #endif
 
 
