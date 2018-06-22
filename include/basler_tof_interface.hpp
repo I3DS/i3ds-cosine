@@ -71,6 +71,11 @@ class Basler_ToF_Interface
     int64_t getMaxDepth();
     void setMaxDepth (int64_t depth);
 
+    int64_t getMinDepthLocalInMM();
+    int64_t getMaxDepthLocalInMM();
+
+
+
     int64_t getMinDepth();
     void setMinDepth(int64_t depth);
 
