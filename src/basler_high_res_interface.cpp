@@ -164,7 +164,7 @@ void
 BaslerHighResInterface::setGain (int64_t value)
 {
   BOOST_LOG_TRIVIAL (info) << "Fetching parameter: GainValue";
-  BOOST_LOG_TRIVIAL (info) <<   "camera->Gain.SetValue()";
+  BOOST_LOG_TRIVIAL (info) << "camera->Gain.SetValue()";
 
   camera->GainRaw.SetValue(value);
 }

@@ -42,7 +42,7 @@ namespace logging = boost::log;
 
 
 #ifdef TOF_CAMERA
-  std::unique_ptr <i3ds::GigeCameraInterface<i3ds::ToFCamera::Measurement500KTopic>> camera;
+  std::unique_ptr <i3ds::GigeCameraInterface<i3ds::ToFCamera::Measurement1MTopic>> camera;
 #else
  std::unique_ptr <i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic>> camera;
 #endif
@@ -138,7 +138,7 @@ int main(int argc, char** argv)
 
 
 #ifdef TOF_CAMERA
-  camera = std::make_unique <i3ds::GigeCameraInterface<i3ds::ToFCamera::Measurement500KTopic>>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
+  camera = std::make_unique <i3ds::GigeCameraInterface<i3ds::ToFCamera::Measurement1MTopic>>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
 #else
   camera = std::make_unique <i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic>>(context, node_id, 800, 600, ip_address, camera_name, camera_freerunning);
 #endif

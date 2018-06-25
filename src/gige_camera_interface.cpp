@@ -203,7 +203,7 @@ i3ds::GigeCameraInterface<MeasurementTopic>::do_deactivate()
 }
 
 
-
+// TODO Check
 template <class MeasurementTopic>
 bool
 i3ds::GigeCameraInterface<MeasurementTopic>::is_sampling_supported(SampleCommand sample)
@@ -378,17 +378,24 @@ i3ds::GigeCameraInterface
 
   // TODO Is Copy or assignment
   BufferParts p = *parts;
+
+ // BOOST_LOG_TRIVIAL (info) << "Test Copy or assignment pointers: parts, p: " << parts << ":" << ((void *)p);
+
   int x = partInfo0.width;
 
+
+
+
   uint16_t *depth = (uint16_t *)p[0].pData;
+
 
   int width =  (*parts)[0].width;
   int height =  (*parts)[0].height;
 
   int ht =  p[0].height;
   const int numberOfPixels = width * height;
-  BOOST_LOG_TRIVIAL(info) << "width:  "<< width << "height: " << height << "xx: " << x <<
-      "ht"<< ht <<" p[0].width: " << p[0].width;
+  BOOST_LOG_TRIVIAL(info) << "numberOfPixels: " << numberOfPixels << " width:  "<< width << " height: " << height << " xx: " << x <<
+      " ht"<< ht <<" p[0].width: " << p[0].width;
 
 
   // just checks for  configuration of camera.
@@ -444,7 +451,7 @@ i3ds::GigeCameraInterface
   frame_.attributes.timestamp.microseconds = timestamp_us;
   frame_.attributes.validity = sample_valid;
 
-  return true;
+ //return true;
 
 #endif
 
@@ -478,9 +485,9 @@ i3ds::GigeCameraInterface
   frame_.descriptor.attributes.timestamp.microseconds = timestamp_us;
   frame_.descriptor.attributes.validity = sample_valid;
 #endif
-
+  BOOST_LOG_TRIVIAL (info)  << "Sending now";
   publisher_.Send<MeasurementTopic>(frame_);
-
+  BOOST_LOG_TRIVIAL (info)  << "Sending done";
   return true;
 }
 
