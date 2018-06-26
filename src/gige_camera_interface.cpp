@@ -418,12 +418,12 @@ i3ds::GigeCameraInterface
   	  // Check confidence
   	  if((depth[i] == 0) || (pConfidenceArr[i] == 0))
   	    {
-  	      frame_.validity.arr[i] = measurement_error ; //TODO Correct status?
+  	      frame_.validity.arr[i] = depth_range_error ; //TODO Correct status?
   	    }
 
   	  else
   	    {
-  	      frame_.validity.arr[i] = valid_measurement;
+  	      frame_.validity.arr[i] = depth_valid;
   	    }
 
 
@@ -432,7 +432,7 @@ i3ds::GigeCameraInterface
   		  frame_.distances.arr[i] <<
 		  " => " <<
 		  std::setprecision (5) << f << " [meter]" <<
-		" Confidence: " <<  ((frame_.validity.arr[i]== valid_measurement) ? "Ok":"Error");
+		" Confidence: " <<  ((frame_.validity.arr[i]== depth_valid) ? "Ok":"Error");
   	  }
 
   	}
@@ -443,7 +443,7 @@ i3ds::GigeCameraInterface
 
 
 
-  frame_.attributes.timestamp.microseconds = timestamp_us;
+  frame_.attributes.timestamp = timestamp_us;
   frame_.attributes.validity = sample_valid;
 
  //return true;
@@ -477,7 +477,7 @@ i3ds::GigeCameraInterface
 #endif
 
 #ifndef TOF_CAMERA
-  frame_.descriptor.attributes.timestamp.microseconds = timestamp_us;
+  frame_.descriptor.attributes.timestamp = timestamp_us;
   frame_.descriptor.attributes.validity = sample_valid;
 
 #endif
