@@ -306,7 +306,7 @@ void
 EbusCameraInterface::setEnum (PvString whichParameter, PvString value, bool dontCheckParameter)
 {
   BOOST_LOG_TRIVIAL (info) << "setEnum: Parameter: "
-      << whichParameter.GetAscii () << "Value: " << value.GetAscii ();
+      << whichParameter.GetAscii () << " Value: " << value.GetAscii ();
   BOOST_LOG_TRIVIAL (info) << "do checkIfEnumOptionIsOK: Parameter first";
 
   bool enumOK = true;
@@ -378,6 +378,29 @@ EbusCameraInterface::getBooleanParameter (PvString whichParameter)
       return true;
     }
 }
+
+
+void
+EbusCameraInterface::setBooleanParameter (PvString whichParameter, bool status)
+{
+  PvGenParameter *lParameter = lParameters->Get (whichParameter);
+
+  bool lValue;
+  PvResult result = static_cast<PvGenBoolean *> (lParameter)->SetValue (status);
+  if(result== PvResult::Code::OK ){
+      BOOST_LOG_TRIVIAL (info) << "Boolean parameter: " << whichParameter.GetAscii () << " set to " << status;
+  }else
+    {
+      BOOST_LOG_TRIVIAL (info) << "Error setting boolean parameter: " << whichParameter.GetAscii () << " to " << status;
+      ostringstream errorDescription;
+      	  errorDescription << "setBooleanParameter Option: Unable to set the parameter: "
+      	      << whichParameter.GetAscii ();
+      	  throw i3ds::CommandError(error_value, errorDescription.str());
+    }
+}
+
+
+
 
 // Sets an integer Parameter on device
 bool
@@ -552,13 +575,13 @@ EbusCameraInterface::getRegion ()
 
 
 #ifdef HR_CAMERA
-const int trigger_interval_factor = 2;
+int const EbusCameraInterface::trigger_interval_factor = 2;
 
 #elif defined(STEREO_CAMERA)
-const int trigger_interval_factor = 30;
+int const EbusCameraInterface::trigger_interval_factor = 30;
 #else
 // The TIR Camera
-const int trigger_interval_factor = 30;
+int const EbusCameraInterface::trigger_interval_factor = 30;
 #endif
 
 
@@ -631,10 +654,16 @@ EbusCameraInterface::setAutoExposureEnabled (bool enabled)
   if (enabled)
     {
       setEnum ("AutoExposure", "ON");
+      setBooleanParameter ("AutoGain", true);
+      setBooleanParameter ("AutoShutterTime", true);
+
     }
   else
     {
+      setBooleanParameter ("AutoGain", false);
+      setBooleanParameter ("AutoShutterTime", false);
       setEnum ("AutoExposure", "OFF");
+
     }
 
 }
@@ -970,7 +999,10 @@ EbusCameraInterface::StartSamplingLoop ()
 	    }
 	  else
 	    {
-	      BOOST_LOG_TRIVIAL (info) << "-->erg";
+	      BOOST_LOG_TRIVIAL (info) << "-->OpenStream Error";
+	      samplingErrorFlag = true;
+	      strncpy(samplingErrorText,"StartAcqisition error", 25);
+
 	      TearDown (false);
 	    }
 	  first = false;

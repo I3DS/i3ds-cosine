@@ -84,17 +84,10 @@ i3ds::GigeCameraInterface<MeasurementTopic>::GigeCameraInterface(Context::Ptr co
 
 
 
-  shutter_ = 0;
-  gain_ = 0.0;
 
   auto_exposure_enabled_ = false;
   max_shutter_ = 0;
   max_gain_ = 0.0;
-
-  region_.size_x = resx;
-  region_.size_y = resy;
-  region_.offset_x = 0;
-  region_.offset_y = 0;
 
   flash_enabled_ = false;
   flash_strength_ = 0.0;
@@ -217,17 +210,21 @@ i3ds::GigeCameraInterface<MeasurementTopic>::handle_exposure(ExposureService::Da
 {
   BOOST_LOG_TRIVIAL(info) << "handle_exposure()";
   if(is_active() == false){
-      BOOST_LOG_TRIVIAL(info) << "handle_exposure()-->Not in active state";
+    BOOST_LOG_TRIVIAL(info) << "handle_exposure()-->Not in active state";
 
+    std::ostringstream errorDescription;
+    errorDescription << "handle_exposure: Not in active state";
+    throw i3ds::CommandError(error_value, errorDescription.str());
+  }
+  if(cameraInterface->getAutoExposureEnabled())
+    {
       std::ostringstream errorDescription;
-      errorDescription << "handle_exposure: Not in active state";
+      errorDescription << "handle_exposure: In auto-exposure mode";
       throw i3ds::CommandError(error_value, errorDescription.str());
     }
 
-  auto_exposure_enabled_ = false;
   cameraInterface->setShutterTime(command.request.shutter);
-  SensorGain gain = command.request.gain;
-  cameraInterface->setGain(gain);
+  cameraInterface->setGain(command.request.gain);
 }
 
 
@@ -245,18 +242,15 @@ i3ds::GigeCameraInterface<MeasurementTopic>::handle_auto_exposure(AutoExposureSe
     errorDescription << "handle_auto_exposure: Not in active or operational state";
     throw i3ds::CommandError(error_value, errorDescription.str());
   }
-  auto_exposure_enabled_ = command.request.enable;
+//  auto_exposure_enabled_ = command.request.enable;
   BOOST_LOG_TRIVIAL(info) << "handle_auto_exposure: enable: "<< command.request.enable;
   cameraInterface->setAutoExposureEnabled(command.request.enable);
 
   if (command.request.enable)
     {
-
       //max_exposure_ = command.request.max_exposure;
       //max_gain_ = command.request.max_gain;
       cameraInterface->setMaxShutterTime(command.request.max_shutter);
-
-
     }
 }
 

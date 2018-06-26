@@ -57,7 +57,7 @@ class EbusCameraInterface: protected PvDeviceEventSink {
 
 
     bool getBooleanParameter(PvString whichParameter);
-
+    void setBooleanParameter (PvString whichParameter, bool status);
 
     char * getString(PvString whichParameter);
 
@@ -115,7 +115,7 @@ class EbusCameraInterface: protected PvDeviceEventSink {
     PvDevice* mDevice;
     PvGenParameterArray *lParameters;
 
-
+    static int const trigger_interval_factor;
 
     //--streaming part
     bool OpenStream();
