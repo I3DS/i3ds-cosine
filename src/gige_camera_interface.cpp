@@ -104,15 +104,11 @@ i3ds::GigeCameraInterface<MeasurementTopic>::GigeCameraInterface(Context::Ptr co
 
   MeasurementTopic::Codec::Initialize(frame_);
 #ifdef TOF_CAMERA
-  frame_.region.size_x = resx_;
-  frame_.region.size_y = resy_;
-  frame_.distances.nCount = resx_ * resy_ * 2;
+
 #else
   frame_.descriptor.frame_mode = mode_mono;
   frame_.descriptor.data_depth = 12;
   frame_.descriptor.pixel_size = 2;
-  frame_.descriptor.region.size_x = resx_;
-  frame_.descriptor.region.size_y = resy_;
   frame_.descriptor.image_count = 1;
 #endif
 
@@ -229,10 +225,9 @@ i3ds::GigeCameraInterface<MeasurementTopic>::handle_exposure(ExposureService::Da
     }
 
   auto_exposure_enabled_ = false;
-  shutter_ = command.request.shutter;
-  cameraInterface->setShutterTime(shutter_);
-  gain_ = command.request.gain;
-  cameraInterface->setGain(gain_);
+  cameraInterface->setShutterTime(command.request.shutter);
+  SensorGain gain = command.request.gain;
+  cameraInterface->setGain(gain);
 }
 
 
@@ -256,6 +251,7 @@ i3ds::GigeCameraInterface<MeasurementTopic>::handle_auto_exposure(AutoExposureSe
 
   if (command.request.enable)
     {
+
       //max_exposure_ = command.request.max_exposure;
       //max_gain_ = command.request.max_gain;
       cameraInterface->setMaxShutterTime(command.request.max_shutter);
