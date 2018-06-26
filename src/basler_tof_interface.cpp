@@ -48,7 +48,7 @@ Basler_ToF_Interface::Basler_ToF_Interface2 ()
   BOOST_LOG_TRIVIAL (info) << "Setting environment variable: GENICAM_GENTL64_PATH to :"
       << GENICAM_GENTL64_PATH << std::endl;
   setenv ("GENICAM_GENTL64_PATH", GENICAM_GENTL64_PATH, 1);
-  BOOST_LOG_TRIVIAL (info)  << "Initialising camera environment for ToF camera"
+  BOOST_LOG_TRIVIAL (info)  << "Initializing camera environment for ToF camera"
       << GENICAM_GENTL64_PATH;
   CToFCamera::InitProducer ();
 }
@@ -108,7 +108,7 @@ Basler_ToF_Interface::getRegion ()
   int64_t size_x = ptrWidth->GetValue ();
   int64_t size_y = ptrHeight->GetValue ();
   int64_t offset_x = ptrOffsetX->GetValue ();
-  int64_t offset_y = ptrOffsetY->GetValue (); //getParameter ("RegionHeight");
+  int64_t offset_y = ptrOffsetY->GetValue ();
 
   PlanarRegion region;
 
@@ -157,7 +157,7 @@ Basler_ToF_Interface::checkTriggerInterval (int64_t period) // period is in us, 
 
   float wished_rate_in_Hz = 1e6 / period;
   BOOST_LOG_TRIVIAL (info) << "Tof CheckTriggerInterval: " << wished_rate_in_Hz
-      << "Hz = " << period << "uS";
+      << " Hz = " << period << " uS";
   GenApi::CFloatPtr ptrTriggerInterval (
       m_Camera.GetParameter ("AcquisitionFrameRate"));
   float max_rate_Hz = ptrTriggerInterval->GetMax ();

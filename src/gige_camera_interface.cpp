@@ -52,11 +52,9 @@ namespace logging = boost::log;
 
 
 template <class MeasurementTopic>
-i3ds::GigeCameraInterface<MeasurementTopic>::GigeCameraInterface(Context::Ptr context, NodeID node, int resx, int resy,
+i3ds::GigeCameraInterface<MeasurementTopic>::GigeCameraInterface(Context::Ptr context, NodeID node,
 					     std::string const &ipAddress, const std::string & camera_name, bool free_running)
   : Camera(node),
-    resx_(resx),
-    resy_(resy),
     free_running_(free_running),
     publisher_(context, node)
 {
@@ -131,6 +129,28 @@ i3ds::GigeCameraInterface<MeasurementTopic>::~GigeCameraInterface()
 
 template <class MeasurementTopic>
 void
+i3ds::GigeCameraInterface<MeasurementTopic>::updateRegion()
+  {
+  region_ = cameraInterface->getRegion();
+
+  // TODO Can simplifies
+ #ifdef TOF_CAMERA
+    frame_.region.size_y = resy_ = region_.size_y;
+    frame_.region.size_x = resx_ = region_.size_x;
+
+ #elif defined(STEREO_CAMERA)
+   frame_.descriptor.region.size_y = resy_ = region_.size_y/2;
+   frame_.descriptor.region.size_x = resx_ = region_.size_x;
+
+ #else
+   frame_.descriptor.region.size_y = resy_ = region_.size_y;
+   frame_.descriptor.region.size_x = resx_ = region_.size_x;
+ #endif
+
+  }
+
+template <class MeasurementTopic>
+void
 i3ds::GigeCameraInterface<MeasurementTopic>::do_activate()
 {
   BOOST_LOG_TRIVIAL(info) << "do_activate()";
@@ -140,33 +160,10 @@ i3ds::GigeCameraInterface<MeasurementTopic>::do_activate()
   cameraInterface->setSourceBothStreams();
 #endif
 
-  shutter_ = cameraInterface->getShutterTime();
-  BOOST_LOG_TRIVIAL(info) << "Shutter_: " << shutter_;
 
-  PlanarRegion planarRegion = cameraInterface->getRegion();
+  BOOST_LOG_TRIVIAL(info) << "Shutter_: " << cameraInterface->getShutterTime();
 
-
-
-
- // TODO Can simplifies
-
-
-#ifdef TOF_CAMERA
-   frame_.region.size_y = resy_ = planarRegion.size_y;
-   frame_.region.size_x = resx_ = planarRegion.size_x;
- // frame_.image_left.nCount = resx_ * resy_ * 2;
- // frame_.image_right.nCount = resx_ * resy_ * 2;
- ;
-#elif defined(STEREO_CAMERA)
-  frame_.descriptor.region.size_y = resy_ = planarRegion.size_y/2;
-  frame_.descriptor.region.size_x = resx_ = planarRegion.size_x;
-
-#else
-  frame_.descriptor.region.size_y = resy_ = planarRegion.size_y;
-  frame_.descriptor.region.size_x = resx_ = planarRegion.size_x;
-#endif
-
-
+  updateRegion();
 }
 
 
@@ -177,6 +174,9 @@ i3ds::GigeCameraInterface<MeasurementTopic>::do_start()
 {
   BOOST_LOG_TRIVIAL(info) << "do_start()";
   //sampler_.Start(rate());
+
+
+  updateRegion();
 
   cameraInterface->do_start();
 
@@ -273,6 +273,7 @@ i3ds::GigeCameraInterface<MeasurementTopic>::handle_region(RegionService::Data& 
 {
   BOOST_LOG_TRIVIAL(info) << "handle_region()";
   if(!(is_active())){
+
     BOOST_LOG_TRIVIAL(info) << "handle_region()-->Not in active state";
 
     std::ostringstream errorDescription;
@@ -399,6 +400,10 @@ i3ds::GigeCameraInterface
 
 
   // just checks for  configuration of camera.
+  /*std::ostringstream errorDescription;
+        errorDescription << "Send data:Error!! Wrong  initialization of ToF Camera data type";
+        throw i3ds::CommandError(error_value, errorDescription.str());
+*/
   if(p[0].partType != Range)
     {
       BOOST_LOG_TRIVIAL(info) << "Error!! Wrong  initialization of ToF Camera data type";
@@ -484,6 +489,7 @@ i3ds::GigeCameraInterface
 #ifndef TOF_CAMERA
   frame_.descriptor.attributes.timestamp.microseconds = timestamp_us;
   frame_.descriptor.attributes.validity = sample_valid;
+
 #endif
   BOOST_LOG_TRIVIAL (info)  << "Sending now";
   publisher_.Send<MeasurementTopic>(frame_);
