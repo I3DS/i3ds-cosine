@@ -105,47 +105,48 @@ SerialCommunicator::sendParameterString (const char *parameterString)
   fds[0].revents = 0;
   int n;
 //  for (;;)
-    {
-      n = poll (fds, 1, 2000);
+  {
+    n = poll (fds, 1, 2000);
 
-      if (n > 0)
-	{
-	  if (fds[0].revents & POLLIN)
-	    { //got data, and look up which fd has data, but we just have one waiting for events
-	      ssize_t length;
-	      length = read (fds[0].fd, buff, sizeof(buff));
-	      if (length == -1)
-		{
-		  // REMARK: Got "Resource temporary unavailable." sometimes.
-		  // But, I think it disapaired when I removed a terminal listening to the same serial port.
-		  BOOST_LOG_TRIVIAL(info) <<"Error read event: %s" << strerror (errno);
-		}
-	      buff[length] = 0;
-	      BOOST_LOG_TRIVIAL(info) << "From poll: " << buff << "  Length:" << length;
-	      if (buff[strlen (command) + 1] == '>')
-		{
-		  BOOST_LOG_TRIVIAL(info) << "Ok response.\n";
-		}
-	      else
-		{
-		  // Reformating error code to remove OK prompt at new line before sending it to client.
-		  BOOST_LOG_TRIVIAL(info) << "Error in response: %s" << buff;
-		  char *p;
-		  p = strchr (buff, '\n');
-		  *p = '\0';
-		  BOOST_LOG_TRIVIAL(info) << "Error in response: %s" << buff;
-		}
-	    }
-	  else
-	    {
-	      BOOST_LOG_TRIVIAL(info) <<"Other event type? Needs to be handed?";
-	    }
-	}
-      else
-	{
-	  BOOST_LOG_TRIVIAL(info) << "No data within 2 seconds.";
-	}
-    }
+    if (n > 0)
+      {
+        if (fds[0].revents & POLLIN)
+          {
+            //got data, and look up which fd has data, but we just have one waiting for events
+            ssize_t length;
+            length = read (fds[0].fd, buff, sizeof(buff));
+            if (length == -1)
+              {
+                // REMARK: Got "Resource temporary unavailable." sometimes.
+                // But, I think it disapaired when I removed a terminal listening to the same serial port.
+                BOOST_LOG_TRIVIAL(info) <<"Error read event: %s" << strerror (errno);
+              }
+            buff[length] = 0;
+            BOOST_LOG_TRIVIAL(info) << "From poll: " << buff << "  Length:" << length;
+            if (buff[strlen (command) + 1] == '>')
+              {
+                BOOST_LOG_TRIVIAL(info) << "Ok response.\n";
+              }
+            else
+              {
+                // Reformating error code to remove OK prompt at new line before sending it to client.
+                BOOST_LOG_TRIVIAL(info) << "Error in response: %s" << buff;
+                char *p;
+                p = strchr (buff, '\n');
+                *p = '\0';
+                BOOST_LOG_TRIVIAL(info) << "Error in response: %s" << buff;
+              }
+          }
+        else
+          {
+            BOOST_LOG_TRIVIAL(info) <<"Other event type? Needs to be handed?";
+          }
+      }
+    else
+      {
+        BOOST_LOG_TRIVIAL(info) << "No data within 2 seconds.";
+      }
+  }
 
 }
 
@@ -154,14 +155,14 @@ SerialCommunicator::sendParameterString (const char *parameterString)
 // Limits are described in manual
 void
 SerialCommunicator::sendConfigurationParameters (int c, float p, float d,
-						 float s, float r = -1.0)
+    float s, float r = -1.0)
 {
 
   char buffer[100];
 
   BOOST_LOG_TRIVIAL(info) <<"Sending configuration parameters: " << "c:" << c << " "
-      "p:" << p << " "
-      "d:" << d << " ";
+                          "p:" << p << " "
+                          "d:" << d << " ";
 
   if (r != -1.0)
     {
@@ -250,16 +251,16 @@ main (int argc, char* argv[])
    "Manually send command string to interact with the flash.\n"
    "\tOne may use all command string described in the manual.\n"
    "\tE.g \"TR1\" for triggering flash.\n") (
-      "remote,r",
-      po::value < std::vector<double> > (&commandParameters)->multitoken (),
-      "This is the command available remotely via i3ds."
-      "Actually the used command is: \"RTc,p,d,s,r\"\n"
-      "\tc=1 => Light strobe output.\n\tc=2 => Trigger output signal\n"
-      "\tp= pulse width in milliseconds (0.01 to 3)\n"
-      "\ts= setting in percent(0 to 100)\n"
-      "\tr= re-trigger delay in milliseconds (an optional parameter)\n"
-      "Settings are not keep during a power cycle.\n"
-      "Use format: -c 1 0.1 200 100 12\n")
+     "remote,r",
+     po::value < std::vector<double> > (&commandParameters)->multitoken (),
+     "This is the command available remotely via i3ds."
+     "Actually the used command is: \"RTc,p,d,s,r\"\n"
+     "\tc=1 => Light strobe output.\n\tc=2 => Trigger output signal\n"
+     "\tp= pulse width in milliseconds (0.01 to 3)\n"
+     "\ts= setting in percent(0 to 100)\n"
+     "\tr= re-trigger delay in milliseconds (an optional parameter)\n"
+     "Settings are not keep during a power cycle.\n"
+     "Use format: -c 1 0.1 200 100 12\n")
 
   //("vector_value", po::value<std::vector<double> >(&vecoption)->
   //     multitoken()->default_value(std::vector<double>{0, 1, 2}), "description");
@@ -307,12 +308,12 @@ main (int argc, char* argv[])
   if (vm.count ("quite"))
     {
       logging::core::get ()->set_filter (
-	  logging::trivial::severity >= logging::trivial::warning);
+        logging::trivial::severity >= logging::trivial::warning);
     }
   else if (!vm.count ("verbose"))
     {
       logging::core::get ()->set_filter (
-	  logging::trivial::severity >= logging::trivial::info);
+        logging::trivial::severity >= logging::trivial::info);
     }
 
   po::notify (vm);
@@ -335,7 +336,7 @@ main (int argc, char* argv[])
   BOOST_LOG_TRIVIAL(info) << argv[0];
 
   SerialCommunicator *serialCommunicator = new SerialCommunicator (
-      serialPort.c_str ());
+    serialPort.c_str ());
 
   if (!flashCommand.empty ())
     {
@@ -345,49 +346,49 @@ main (int argc, char* argv[])
   if (!remoteParameters.empty ())
     {
       if (remoteParameters.size () == 4)
-	{
-      serialCommunicator->sendConfigurationParameters (
-	  remoteParameters[0],
-	  remoteParameters[1],
-	  remoteParameters[2],
-	  remoteParameters[3]
-      );
+        {
+          serialCommunicator->sendConfigurationParameters (
+            remoteParameters[0],
+            remoteParameters[1],
+            remoteParameters[2],
+            remoteParameters[3]
+          );
+        }
+      if (remoteParameters.size () == 5)
+        {
+          serialCommunicator->sendConfigurationParameters (
+            remoteParameters[0],
+            remoteParameters[1],
+            remoteParameters[2],
+            remoteParameters[3],
+            remoteParameters[4]
+          );
+        }
     }
-  if (remoteParameters.size () == 5)
+
+  if (triggerFlash)
     {
-  serialCommunicator->sendConfigurationParameters (
-      remoteParameters[0],
-      remoteParameters[1],
-      remoteParameters[2],
-      remoteParameters[3],
-      remoteParameters[4]
-  );
-}
-}
+      serialCommunicator->sendManualTrigger ();
+    }
 
-if (triggerFlash)
-{
-serialCommunicator->sendManualTrigger ();
-}
+  if (dontRunProgram)
+    {
+      return 0;
+    }
+  /*
+   serialCommunicator->sendParameterString ("RT1,3,200,10.0");
 
-if (dontRunProgram)
-{
-return 0;
-}
-/*
- serialCommunicator->sendParameterString ("RT1,3,200,10.0");
+   serialCommunicator->sendManualTrigger ();
+   serialCommunicator->sendParameterString ("RT1d3,300.2,1d");
+   sleep(1);
+   serialCommunicator->sendManualTrigger ();
+   sleep(1);
 
- serialCommunicator->sendManualTrigger ();
- serialCommunicator->sendParameterString ("RT1d3,300.2,1d");
- sleep(1);
- serialCommunicator->sendManualTrigger ();
- sleep(1);
+   serialCommunicator->sendConfigurationParameters (1, 0.2, 0.01, 90);
+   sleep(1);
+   serialCommunicator->sendManualTrigger ();
+   */
+  serialCommunicator->closeSerialPort ();
 
- serialCommunicator->sendConfigurationParameters (1, 0.2, 0.01, 90);
- sleep(1);
- serialCommunicator->sendManualTrigger ();
- */
-serialCommunicator->closeSerialPort ();
-
-return 0;
+  return 0;
 }

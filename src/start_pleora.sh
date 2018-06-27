@@ -39,5 +39,5 @@ fi
 
 export LD_LIBRARY_PATH
 
-./Pleora${START_FILE} $@
+./i3ds-cosine-${START_FILE} $@
 

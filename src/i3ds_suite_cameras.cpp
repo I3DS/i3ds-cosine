@@ -18,7 +18,7 @@
 #include <boost/program_options.hpp>
 
 #include "i3ds/communication.hpp"
-#include "gige_camera_interface.hpp"
+#include "cosine_camera.hpp"
 
 #define BOOST_LOG_DYN_LINK
 
@@ -32,28 +32,10 @@
 #include <type_traits>
 #include <utility>
 
-#include "cpp11_make_unique_template.hpp"
-
-
-
-
 namespace po = boost::program_options;
 namespace logging = boost::log;
 
-
-#ifdef TOF_CAMERA
-  std::unique_ptr <i3ds::GigeCameraInterface<i3ds::ToFCamera::MeasurementTopic>> camera;
-#else
- std::unique_ptr <i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic>> camera;
-#endif
-
-
-
 volatile bool running;
-unsigned int node_id;
-std::string ip_address;
-std::string camera_name;
-bool camera_freerunning = false;
 
 void signal_handler(int signum)
 {
@@ -65,87 +47,61 @@ void signal_handler(int signum)
 
 int main(int argc, char** argv)
 {
-	po::options_description desc("Allowed camera control options");
-	  desc.add_options()
-	    ("help,h", "Produce this message")
-	    ("node,n", po::value<unsigned int>(&node_id)->default_value(DEFAULT_NODE_ID), "Node ID of camera")
-	    ("ip-address,i", po::value<std::string>(&ip_address)->default_value(DEFAULT_IP_ADDRESS), "Use IP Address of camera to connect")
-	    ("camera-name,c", po::value<std::string>(&camera_name)->default_value(DEFAULT_CAMERA_NAME), "Connect via (UserDefinedName) of Camera")
-	    ("free-running,f", po::bool_switch(&camera_freerunning), "Free-running sampling. Default external triggered")
+  unsigned int node_id;
 
-	    ("verbose,v", "Print verbose output")
-	    ("quite,q", "Quiet ouput")
-	    ("print", "Print the camera configuration")
-   ;
+  std::string ip_address;
+  std::string camera_name;
 
-	  po::variables_map vm;
-	  po::store(po::parse_command_line(argc, argv, desc), vm);
+  bool is_stereo;
+  bool free_running;
 
-	  if (vm.count("help"))
-	    {
-	      std::cout << desc << std::endl;
-	      return -1;
-	    }
-/*
-	  if (vm.count("camera-name"))
-	    {
-	      std::string s;
-	      s = vm["camera-name"].as< std::vector<std::string>>().front();
-	      std::cout << "Using device: "<< s << std::endl;
-	    }
-*/
-	  if (vm.count("quite"))
-	    {
-	      logging::core::get()->set_filter(logging::trivial::severity >= logging::trivial::warning);
-	    }
-	  else if (!vm.count("verbose"))
-	    {
-	      logging::core::get()->set_filter(logging::trivial::severity >= logging::trivial::info);
-	    }
+  po::options_description desc("Allowed camera control options");
 
-	  po::notify(vm);
+  desc.add_options()
+  ("help,h", "Produce this message")
+  ("node,n", po::value<unsigned int>(&node_id), "Node ID of camera")
+  ("ip-address,i", po::value<std::string>(&ip_address), "Use IP Address of camera to connect")
+  ("camera-name,c", po::value<std::string>(&camera_name), "Connect via (UserDefinedName) of Camera")
+  ("stereo,s", po::bool_switch(&is_stereo)->default_value(false), "Is stereo camera")
+  ("free-running,f", po::bool_switch(&free_running)->default_value(false), "Free-running sampling")
 
-/*	  i3ds::Context::Ptr context(i3ds::Context::Create());
+  ("verbose,v", "Print verbose output")
+  ("quite,q", "Quiet ouput")
+  ("print", "Print the camera configuration")
+  ;
 
-	  BOOST_LOG_TRIVIAL(info) << "Connecting to camera with node ID: " << node_id;
-	  i3ds::CameraClient camera(context,   frame_.image.nCount = resx_ * resy_ * 2;
-	   node_id);
-	  BOOST_LOG_TRIVIAL(trace) << "---> [OK]";
-*/
+  po::variables_map vm;
+  po::store(po::parse_command_line(argc, argv, desc), vm);
 
-	/*
-	  // Print config, this is the final command.
-	  if (vm.count("print"))
-	    {
-	      print_camera_settings(&camera);
-	    }
-	*/
+  if (vm.count("help"))
+    {
+      std::cout << desc << std::endl;
+      return -1;
+    }
 
+  if (vm.count("quite"))
+    {
+      logging::core::get()->set_filter(logging::trivial::severity >= logging::trivial::warning);
+    }
+  else if (!vm.count("verbose"))
+    {
+      logging::core::get()->set_filter(logging::trivial::severity >= logging::trivial::info);
+    }
 
-
-	  BOOST_LOG_TRIVIAL(info) << "test1a";
-
+  po::notify(vm);
 
   i3ds::Context::Ptr context = i3ds::Context::Create();;
 
   i3ds::Server server(context);
 
-
   BOOST_LOG_TRIVIAL(info) << "Using Nodeid: " << node_id;
   BOOST_LOG_TRIVIAL(info) << "Using IP ADDRESS: " << ip_address;
   BOOST_LOG_TRIVIAL(info) << "User defined camera name " << camera_name;
 
+  i3ds::CosineCamera camera(context, node_id, ip_address, camera_name, is_stereo, free_running);
 
+  camera.Attach(server);
 
-#ifdef TOF_CAMERA
-  camera = std::make_unique <i3ds::GigeCameraInterface<i3ds::ToFCamera::MeasurementTopic>>(context, node_id, ip_address, camera_name, camera_freerunning);
-#else
-  camera = std::make_unique <i3ds::GigeCameraInterface<i3ds::Camera::FrameTopic>>(context, node_id, ip_address, camera_name, camera_freerunning);
-#endif
-
-
-  BOOST_LOG_TRIVIAL(info) << "AttachServer";
-  camera->Attach(server);
   running = true;
   signal(SIGINT, signal_handler);
 
