@@ -25,8 +25,8 @@
 namespace logging = boost::log;
 
 i3ds::CosineCamera::CosineCamera(Context::Ptr context,
-				 NodeID node,
-				 CosineParameters& param)
+                                 NodeID node,
+                                 CosineParameters& param)
   : Camera(node),
     is_stereo_(param.is_stereo),
     free_running_(param.free_running),
@@ -34,11 +34,11 @@ i3ds::CosineCamera::CosineCamera(Context::Ptr context,
     publisher_(context, node)
 {
   using namespace std::placeholders;
-  
+
   BOOST_LOG_TRIVIAL(info) << "CosineCamera::CosineCamera()";
 
   auto op = std::bind(&i3ds::CosineCamera::send_sample, this, _1, _2, _3);
-  
+
   ebus_ = std::unique_ptr<EbusWrapper>(new EbusWrapper(param.camera_name, op));
 
   flash_enabled_ = false;
@@ -97,14 +97,14 @@ i3ds::CosineCamera::region() const
 {
   int64_t sx = ebus_->getParameter("Width");
   int64_t sy = ebus_->getParameter("Height");
-  
+
   if (is_stereo_)
     {
       sy /= 2;
     }
 
   PlanarRegion region;
-  
+
   region.offset_x = 0;
   region.offset_y = 0;
   region.size_x = (T_UInt16) sx; // Known to be safe.
@@ -135,7 +135,7 @@ i3ds::CosineCamera::do_start()
   BOOST_LOG_TRIVIAL(info) << "do_start()";
 
   int64_t trigger = to_trigger(period());
-  int timeout_ms = (int) (2 * period() / 1000);
+  int timeout_ms = (int)(2 * period() / 1000);
 
   ebus_->Start(free_running_, trigger, timeout_ms);
 }
@@ -180,7 +180,7 @@ i3ds::CosineCamera::is_sampling_supported(SampleCommand sample)
   int64_t max = ebus_->getMaxParameter("TriggerInterval");
 
   BOOST_LOG_TRIVIAL(info) << "min: " << min << " max: " << max << "trigger: " << trigger;
-  
+
   return min <= trigger && trigger <= max;
 }
 
@@ -206,19 +206,19 @@ i3ds::CosineCamera::handle_auto_exposure(AutoExposureService::Data& command)
   BOOST_LOG_TRIVIAL(info) << "handle_auto_exposure()";
 
   check_standby();
-  
+
   if (command.request.enable)
     {
-      ebus_->setEnum ("AutoExposure", "ON");
-      ebus_->setBooleanParameter ("AutoGain", true);
-      ebus_->setBooleanParameter ("AutoShutterTime", true);
-      ebus_->setIntParameter ("MaxShutterTimeValue", (int64_t) command.request.max_shutter);
+      ebus_->setEnum("AutoExposure", "ON");
+      ebus_->setBooleanParameter("AutoGain", true);
+      ebus_->setBooleanParameter("AutoShutterTime", true);
+      ebus_->setIntParameter("MaxShutterTimeValue", (int64_t) command.request.max_shutter);
     }
   else
     {
-      ebus_->setBooleanParameter ("AutoGain", false);
-      ebus_->setBooleanParameter ("AutoShutterTime", false);
-      ebus_->setEnum ("AutoExposure", "OFF");
+      ebus_->setBooleanParameter("AutoGain", false);
+      ebus_->setBooleanParameter("AutoShutterTime", false);
+      ebus_->setEnum("AutoExposure", "OFF");
     }
 }
 
@@ -228,7 +228,7 @@ i3ds::CosineCamera::handle_flash(FlashService::Data& command)
   BOOST_LOG_TRIVIAL(info) << "handle_flash()";
 
   check_standby();
-  
+
   flash_enabled_ = command.request.enable;
 
   if (command.request.enable)
@@ -281,7 +281,7 @@ i3ds::CosineCamera::send_sample(unsigned char *image, int width, int height)
   const size_t size = image_size(frame.descriptor);
 
   frame.append_image(image, size);
-  
+
   if (is_stereo_)
     {
       frame.append_image(image + size, size);

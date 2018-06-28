@@ -76,7 +76,7 @@ private:
 
   int64_t to_trigger(SamplePeriod period);
   SamplePeriod to_period(int64_t trigger);
-  
+
   bool send_sample(unsigned char* image, int width, int height);
 
   void updateRegion();

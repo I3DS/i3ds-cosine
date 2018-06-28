@@ -49,7 +49,7 @@ int main(int argc, char** argv)
 
   std::string camera_type;
   i3ds::CosineParameters param;
-  
+
   po::options_description desc("Allowed camera control options");
 
   desc.add_options()
@@ -122,7 +122,7 @@ int main(int argc, char** argv)
 
   server.Start();
 
-  while(running)
+  while (running)
     {
       sleep(1);
     }

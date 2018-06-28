@@ -28,7 +28,7 @@ class EbusWrapper: protected PvDeviceEventSink
 public:
 
   EbusWrapper(std::string camera_name,
-	      Operation operation);
+              Operation operation);
 
   bool Connect();
   void Disconnect();
@@ -42,7 +42,7 @@ public:
   bool setIntParameter(PvString whichParameter, int64_t value);
 
   bool getBooleanParameter(PvString whichParameter);
-  void setBooleanParameter (PvString whichParameter, bool status);
+  void setBooleanParameter(PvString whichParameter, bool status);
 
   std::string getEnum(PvString whichParameter);
   void setEnum(PvString whichParameter, PvString value, bool dontCheckParameter = false);
