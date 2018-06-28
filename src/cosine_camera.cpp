@@ -273,7 +273,7 @@ i3ds::CosineCamera::send_sample(unsigned char *image, int width, int height)
   frame.descriptor.region.size_y = sy;
   frame.descriptor.frame_mode = mode_mono;
   frame.descriptor.data_depth = param_.data_depth;
-  frame.descriptor.pixel_size = param_.data_depth / 8 + 1;
+  frame.descriptor.pixel_size = 2;
   frame.descriptor.image_count = param_.is_stereo ? 2 : 1;
 
   const size_t size = image_size(frame.descriptor);
