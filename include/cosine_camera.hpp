@@ -23,15 +23,19 @@ class EbusWrapper;
 namespace i3ds
 {
 
+struct CosineParameters
+{
+  std::string camera_name;
+  bool is_stereo;
+  bool free_running;
+  int64_t trigger_scale;
+};
+
 class CosineCamera : public Camera
 {
 public:
 
-  CosineCamera(Context::Ptr context, NodeID id,
-               std::string ipAddress,
-               std::string camera_name,
-	       bool is_stereo,
-               bool free_running);
+  CosineCamera(Context::Ptr context, NodeID id, CosineParameters& param);
 
   virtual ~CosineCamera();
 
@@ -44,7 +48,7 @@ public:
   virtual ShutterTime max_shutter() const;
   virtual SensorGain max_gain() const;
 
-  virtual PlanarRegion region() const {return region_;}
+  virtual PlanarRegion region() const;
 
   virtual bool flash_enabled() const {return flash_enabled_;}
   virtual FlashStrength flash_strength() const {return flash_strength_;}
@@ -70,15 +74,17 @@ protected:
 
 private:
 
-  bool send_sample(unsigned char * image, unsigned long timestamp_us);
+  int64_t to_trigger(SamplePeriod period);
+  SamplePeriod to_period(int64_t trigger);
+  
+  bool send_sample(unsigned char* image, int width, int height);
 
   void updateRegion();
 
   const bool is_stereo_;
   const bool free_running_;
+  const int64_t trigger_scale_;
 
-  PlanarRegion region_;
-  
   bool flash_enabled_;
   FlashStrength flash_strength_;
 
@@ -86,8 +92,6 @@ private:
   PatternSequence pattern_sequence_;
 
   Publisher publisher_;
-
-  Camera::FrameTopic::Data frame_;
 
   std::unique_ptr<EbusWrapper> ebus_;
 };

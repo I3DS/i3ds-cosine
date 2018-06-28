@@ -14,73 +14,46 @@
 #include <thread>
 
 #include <PvDevice.h>
-#include <PvStream.h>
-#include <PvStreamGEV.h>
-#include <PvStreamU3V.h>
-#include <PvDeviceInfoGEV.h>
-#include <PvDeviceInfoU3V.h>
-
-//#include <PvSampleUtils.h>
-#include <PvDevice.h>
 #include <PvPipeline.h>
 #include <PvBuffer.h>
 #include <PvStream.h>
 #include <PvStreamGEV.h>
-#include <PvStreamU3V.h>
 #include <PvDeviceInfoGEV.h>
-#include <PvDeviceInfoU3V.h>
 
 // Does sampling operation, returns true if more samples are requested.
-typedef std::function<bool(unsigned char *image, unsigned long timestamp_us)> Operation;
+typedef std::function<bool(unsigned char *image, unsigned int width, unsigned int height)> Operation;
 
 class EbusWrapper: protected PvDeviceEventSink
 {
-
 public:
 
-  EbusWrapper(std::string connectionString,
-	      std::string camera_name,
+  EbusWrapper(std::string camera_name,
 	      Operation operation);
 
-  bool connect();
+  bool Connect();
+  void Disconnect();
+
   void collectParameters();
 
   int64_t getParameter(PvString whichParameter);
   int64_t getMaxParameter(PvString whichParameter);
   int64_t getMinParameter(PvString whichParameter);
+
   bool setIntParameter(PvString whichParameter, int64_t value);
 
   bool getBooleanParameter(PvString whichParameter);
   void setBooleanParameter (PvString whichParameter, bool status);
 
-  char* getString(PvString whichParameter);
-
-  char* getEnum(PvString whichParameter);
+  std::string getEnum(PvString whichParameter);
   void setEnum(PvString whichParameter, PvString value, bool dontCheckParameter = false);
+
   bool checkIfEnumOptionIsOK(PvString whichParameter, PvString value);
-
-  int64_t getShutterTime();
-  void setShutterTime(int64_t value);
-
-  bool getAutoExposureEnabled();
-  void setAutoExposureEnabled(bool value);
-
-  int64_t getGain();
-  void setGain(int64_t value);
-
-  void getSize(int64_t& size_x, int64_t& size_y);
 
   void setTriggerInterval();
   bool checkTriggerInterval(int64_t);
 
-  int64_t getMaxShutterTime();
-  void setMaxShutterTime(int64_t);
-
-  void setSourceBothStreams();
-
-  void do_start(bool free_running);
-  void do_stop();
-  void do_deactivate();
+  void Start(bool free_running, int64_t interval, int timeout_ms);
+  void Stop();
 
 protected:
 
@@ -100,9 +73,12 @@ private:
   //--streaming part
   bool OpenStream();
   void CloseStream();
+
   bool StartAcquisition();
   bool StopAcquisition();
-  void StartSamplingLoop();
+
+  void SamplingLoop();
+
   void DisconnectDevice();
   void TearDown(bool aStopAcquisition);
 
@@ -112,15 +88,10 @@ private:
   bool stopSamplingLoop;
   std::thread threadSamplingLoop;
 
-  const std::string ip_address_;
-
   PvString fetched_ipaddress;
-  bool free_running_;
   Operation operation_;
 
-  int trigger_interval_value_;
-  int samplingsTimeout_;
-  typedef std::chrono::high_resolution_clock clock;
+  int timeout_;
 };
 
 #endif

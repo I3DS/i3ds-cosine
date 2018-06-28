@@ -26,38 +26,26 @@ namespace logging = boost::log;
 
 i3ds::CosineCamera::CosineCamera(Context::Ptr context,
 				 NodeID node,
-				 std::string ipAddress,
-				 std::string camera_name,
-				 bool is_stereo,
-				 bool free_running)
+				 CosineParameters& param)
   : Camera(node),
-    is_stereo_(is_stereo),
-    free_running_(free_running),
+    is_stereo_(param.is_stereo),
+    free_running_(param.free_running),
+    trigger_scale_(param.trigger_scale),
     publisher_(context, node)
 {
   using namespace std::placeholders;
   
   BOOST_LOG_TRIVIAL(info) << "CosineCamera::CosineCamera()";
 
-  auto op = std::bind(&i3ds::CosineCamera::send_sample, this, _1, _2);
+  auto op = std::bind(&i3ds::CosineCamera::send_sample, this, _1, _2, _3);
   
-  ebus_ = std::unique_ptr<EbusWrapper>(new EbusWrapper(ipAddress,
-						       camera_name,
-						       op));
+  ebus_ = std::unique_ptr<EbusWrapper>(new EbusWrapper(param.camera_name, op));
 
   flash_enabled_ = false;
   flash_strength_ = 0.0;
 
   pattern_enabled_ = false;
   pattern_sequence_ = 0;
-
-  Camera::FrameTopic::Codec::Initialize(frame_);
-
-  frame_.descriptor.frame_mode = mode_mono;
-  frame_.descriptor.data_depth = 12;
-  frame_.descriptor.pixel_size = 2;
-
-  frame_.descriptor.image_count = is_stereo_ ? 2 : 1;
 }
 
 i3ds::CosineCamera::~CosineCamera()
@@ -68,7 +56,7 @@ ShutterTime
 i3ds::CosineCamera::shutter() const
 {
   const int64_t max = (1l << 32) - 1;
-  const int64_t shutter = ebus_->getShutterTime();
+  const int64_t shutter = ebus_->getParameter("ShutterTimeValue");
 
   return shutter <= max ? ShutterTime(shutter) : ShutterTime(max);
 }
@@ -76,7 +64,7 @@ i3ds::CosineCamera::shutter() const
 SensorGain
 i3ds::CosineCamera::gain() const
 {
-  const int64_t gain = ebus_->getGain();
+  const int64_t gain = ebus_->getParameter("GainValue");
 
   // TODO: Needs scaling?
   return SensorGain(gain);
@@ -85,14 +73,14 @@ i3ds::CosineCamera::gain() const
 bool
 i3ds::CosineCamera::auto_exposure_enabled() const
 {
-  return ebus_->getAutoExposureEnabled();
+  return ebus_->getEnum("AutoExposure") == "ON";
 }
 
 ShutterTime
 i3ds::CosineCamera::max_shutter() const
 {
   const int64_t max = (1l << 32) - 1;
-  const int64_t shutter = ebus_->getMaxShutterTime();
+  const int64_t shutter = ebus_->getMaxParameter("MaxShutterTimeValue");
 
   return shutter <= max ? ShutterTime(shutter) : ShutterTime(max);
 }
@@ -104,29 +92,25 @@ i3ds::CosineCamera::max_gain() const
   return 12.0;
 }
 
-
-void
-i3ds::CosineCamera::updateRegion()
+PlanarRegion
+i3ds::CosineCamera::region() const
 {
-  int64_t max = (1l << 16) - 1;
-  int64_t sx, sy;
+  int64_t sx = ebus_->getParameter("Width");
+  int64_t sy = ebus_->getParameter("Height");
   
-  ebus_->getSize(sx, sy);
-
   if (is_stereo_)
     {
       sy /= 2;
     }
 
-  if (sx > max) sx = max;
-  if (sy > max) sy = max;
+  PlanarRegion region;
+  
+  region.offset_x = 0;
+  region.offset_y = 0;
+  region.size_x = (T_UInt16) sx; // Known to be safe.
+  region.size_y = (T_UInt16) sy; // Known to be safe.
 
-  region_.offset_x = 0;
-  region_.offset_y = 0;
-  region_.size_x =  (T_UInt16) sx;
-  region_.size_y = (T_UInt16) sy;
-
-  frame_.descriptor.region = region_;
+  return region;
 }
 
 void
@@ -134,16 +118,15 @@ i3ds::CosineCamera::do_activate()
 {
   BOOST_LOG_TRIVIAL(info) << "do_activate()";
 
-  ebus_->connect();
+  ebus_->Connect();
 
   if (is_stereo_)
     {
-      ebus_->setSourceBothStreams();
+      ebus_->setEnum("SourceSelector", "All", true);
     }
 
-  BOOST_LOG_TRIVIAL(info) << "Shutter_: " << ebus_->getShutterTime();
-
-  updateRegion();
+  BOOST_LOG_TRIVIAL(info) << "Initial shutter: " << shutter();
+  BOOST_LOG_TRIVIAL(info) << "Initial gain:    " << gain();
 }
 
 void
@@ -151,7 +134,10 @@ i3ds::CosineCamera::do_start()
 {
   BOOST_LOG_TRIVIAL(info) << "do_start()";
 
-  ebus_->do_start(free_running_);
+  int64_t trigger = to_trigger(period());
+  int timeout_ms = (int) (2 * period() / 1000);
+
+  ebus_->Start(free_running_, trigger, timeout_ms);
 }
 
 void
@@ -159,7 +145,7 @@ i3ds::CosineCamera::do_stop()
 {
   BOOST_LOG_TRIVIAL(info) << "do_stop()";
 
-  ebus_->do_stop();
+  ebus_->Stop();
 }
 
 void
@@ -167,7 +153,19 @@ i3ds::CosineCamera::do_deactivate()
 {
   BOOST_LOG_TRIVIAL(info) << "do_deactivate()";
 
-  ebus_->do_deactivate();
+  ebus_->Disconnect();
+}
+
+int64_t
+i3ds::CosineCamera::to_trigger(SamplePeriod period)
+{
+  return (period * trigger_scale_) / 1000000;
+}
+
+SamplePeriod
+i3ds::CosineCamera::to_period(int64_t trigger)
+{
+  return (trigger * 1000000) / trigger_scale_;
 }
 
 bool
@@ -175,7 +173,15 @@ i3ds::CosineCamera::is_sampling_supported(SampleCommand sample)
 {
   BOOST_LOG_TRIVIAL(info) << "is_rate_supported() " << sample.period;
 
-  return ebus_->checkTriggerInterval(sample.period);
+  // TODO: Check this computation.
+  int64_t trigger = to_trigger(sample.period);
+
+  int64_t min = ebus_->getMinParameter("TriggerInterval");
+  int64_t max = ebus_->getMaxParameter("TriggerInterval");
+
+  BOOST_LOG_TRIVIAL(info) << "min: " << min << " max: " << max << "trigger: " << trigger;
+  
+  return min <= trigger && trigger <= max;
 }
 
 void
@@ -185,13 +191,13 @@ i3ds::CosineCamera::handle_exposure(ExposureService::Data& command)
 
   check_active();
 
-  if(ebus_->getAutoExposureEnabled())
+  if (auto_exposure_enabled())
     {
       throw i3ds::CommandError(error_value, "handle_exposure: In auto-exposure mode");
     }
 
-  ebus_->setShutterTime(command.request.shutter);
-  ebus_->setGain(command.request.gain);
+  ebus_->setIntParameter("ShutterTimeValue", (int64_t) command.request.shutter);
+  ebus_->setIntParameter("GainValue", (int64_t) command.request.gain); // TODO: Needs scaling?
 }
 
 void
@@ -201,11 +207,18 @@ i3ds::CosineCamera::handle_auto_exposure(AutoExposureService::Data& command)
 
   check_standby();
   
-  ebus_->setAutoExposureEnabled(command.request.enable);
-
   if (command.request.enable)
     {
-      ebus_->setMaxShutterTime(command.request.max_shutter);
+      ebus_->setEnum ("AutoExposure", "ON");
+      ebus_->setBooleanParameter ("AutoGain", true);
+      ebus_->setBooleanParameter ("AutoShutterTime", true);
+      ebus_->setIntParameter ("MaxShutterTimeValue", (int64_t) command.request.max_shutter);
+    }
+  else
+    {
+      ebus_->setBooleanParameter ("AutoGain", false);
+      ebus_->setBooleanParameter ("AutoShutterTime", false);
+      ebus_->setEnum ("AutoExposure", "OFF");
     }
 }
 
@@ -242,20 +255,39 @@ i3ds::CosineCamera::handle_pattern(PatternService::Data& command)
 }
 
 bool
-i3ds::CosineCamera::send_sample(unsigned char *image, unsigned long timestamp_us)
+i3ds::CosineCamera::send_sample(unsigned char *image, int width, int height)
 {
   BOOST_LOG_TRIVIAL(info) << "CosineCamera::send_sample()";
 
-  const size_t size = image_size(frame_.descriptor);
-  
-  frame_.append_image(image, size);
+  Camera::FrameTopic::Data frame;
+
+  Camera::FrameTopic::Codec::Initialize(frame);
+
+  T_UInt16 sx = (T_UInt16) width;  // Known to be safe.
+  T_UInt16 sy = (T_UInt16) height; // Known to be safe.
+
+  if (is_stereo_)
+    {
+      sy /= 2;
+    }
+
+  frame.descriptor.region.size_x = sx;
+  frame.descriptor.region.size_y = sy;
+  frame.descriptor.frame_mode = mode_mono;
+  frame.descriptor.data_depth = 12;
+  frame.descriptor.pixel_size = 2;
+  frame.descriptor.image_count = is_stereo_ ? 2 : 1;
+
+  const size_t size = image_size(frame.descriptor);
+
+  frame.append_image(image, size);
   
   if (is_stereo_)
     {
-      frame_.append_image(image + size, size);
+      frame.append_image(image + size, size);
     }
 
-  publisher_.Send<Camera::FrameTopic>(frame_);
+  publisher_.Send<Camera::FrameTopic>(frame);
 
   return true;
 }

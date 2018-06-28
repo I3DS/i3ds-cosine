@@ -28,18 +28,14 @@
 
 #include <string>
 
-
 namespace po = boost::program_options;
 namespace logging = boost::log;
-
 
 bool samplingErrorFlag = false;
 char samplingErrorText[30];
 
-EbusWrapper::EbusWrapper(std::string connectionString,
-			 std::string camera_name,
-                         Operation operation)
-  : ip_address_(connectionString), operation_(operation)
+EbusWrapper::EbusWrapper(std::string camera_name, Operation operation)
+  : operation_(operation)
 {
 
   BOOST_LOG_TRIVIAL (info) << "EbusWrapper constructor";
@@ -50,7 +46,7 @@ EbusWrapper::EbusWrapper(std::string connectionString,
 }
 
 bool
-EbusWrapper::connect ()
+EbusWrapper::Connect ()
 {
   BOOST_LOG_TRIVIAL (info) << "Connecting to camera";
 
@@ -59,10 +55,10 @@ EbusWrapper::connect ()
   // Connect to the selected Device
   PvResult lResult = PvResult::Code::INVALID_PARAMETER;
   mDevice = PvDevice::CreateAndConnect (mConnectionID, &lResult);
+
   if (!lResult.IsOK ())
     {
       BOOST_LOG_TRIVIAL (info) << "CreateAndConnect problem";
-      throw i3ds::CommandError(error_value, "Problem to connect to Camera.");
       return false;
     }
 
@@ -77,9 +73,8 @@ EbusWrapper::connect ()
   fetched_ipaddress = lDeviceGEV->GetIPAddress();
   BOOST_LOG_TRIVIAL (info) << "IP ADDRESS got from camera" << fetched_ipaddress.GetAscii();
 
-
   collectParameters ();
-  trigger_interval_value_ = getParameter ("TriggerInterval");
+
   return true;
 }
 
@@ -118,29 +113,33 @@ EbusWrapper::getParameter (PvString whichParameter)
 
   if (lIntParameter == NULL)
     {
+      ostringstream errorDescription;
+
       BOOST_LOG_TRIVIAL (info) << "Unable to get the parameter: "
                                << whichParameter.GetAscii ();
-      ostringstream errorDescription;
+
       errorDescription << "getParameter: Unable to get the parameter: " << whichParameter.GetAscii ();
+
       throw i3ds::CommandError(error_value, errorDescription.str());
     }
 
   // Read current width value.
   int64_t lParameterValue = 0;
+
   if (!(lIntParameter->GetValue (lParameterValue).IsOK ()))
     {
-      BOOST_LOG_TRIVIAL (info) << "Error retrieving parameter from device";
       ostringstream errorDescription;
+
+      BOOST_LOG_TRIVIAL (info) << "Error retrieving parameter from device";
+
       errorDescription << "getParameter: Error retrieving parameter from device" << whichParameter.GetAscii ();
+
       throw i3ds::CommandError(error_value, errorDescription.str());
-      return 0;
     }
-  else
-    {
-      BOOST_LOG_TRIVIAL (info) << "Parametervalue: " << lParameterValue
-                               << " returned from parameter: " << whichParameter.GetAscii ();
-      return lParameterValue;
-    }
+  
+  BOOST_LOG_TRIVIAL (info) << "Parametervalue: " << lParameterValue
+			   << " returned from parameter: " << whichParameter.GetAscii ();
+  return lParameterValue;
 }
 
 // Fetching minimum allowed value of parameter
@@ -210,7 +209,7 @@ EbusWrapper::getMaxParameter (PvString whichParameter)
 }
 
 
-char *
+std::string
 EbusWrapper::getEnum (PvString whichParameter)
 {
   PvGenParameter *lGenParameter = lParameters->Get (whichParameter);
@@ -240,14 +239,12 @@ EbusWrapper::getEnum (PvString whichParameter)
     }
 
   PvString lValue;
+
   static_cast<PvGenEnum *> (lGenParameter)->GetValue (lValue);
+
   BOOST_LOG_TRIVIAL (info) << "Enum: " << lValue.GetAscii ();
 
-  // TODO: Return std::string instead!
-  char * str;
-
-  asprintf (&str, "%s", lValue.GetAscii ());
-  return str;
+  return std::string(lValue.GetAscii());
 }
 
 bool
@@ -267,8 +264,6 @@ EbusWrapper::checkIfEnumOptionIsOK (PvString whichParameter,
 
   for (int i = 0; i < aCount; i++)
     {
-
-
       const PvGenEnumEntry *aEntry;
 
       static_cast<PvGenEnum *> (lGenParameter)->GetEntryByValue (i, &aEntry);
@@ -282,13 +277,15 @@ EbusWrapper::checkIfEnumOptionIsOK (PvString whichParameter,
           return true;
         }
     }
+
   BOOST_LOG_TRIVIAL (info) << "Option not found.";
+
   ostringstream errorDescription;
+
   errorDescription << "checkEnum: Option: "<< value.GetAscii() << " does not exists for parameter: "
                    << whichParameter.GetAscii ();
-  throw i3ds::CommandError(error_value, errorDescription.str());
-  return false;
 
+  throw i3ds::CommandError(error_value, errorDescription.str());
 }
 
 
@@ -300,6 +297,7 @@ EbusWrapper::setEnum (PvString whichParameter, PvString value, bool dontCheckPar
   BOOST_LOG_TRIVIAL (info) << "do checkIfEnumOptionIsOK: Parameter first";
 
   bool enumOK = true;
+
   if(dontCheckParameter == false)
     {
       enumOK = checkIfEnumOptionIsOK (whichParameter, value);
@@ -317,6 +315,7 @@ EbusWrapper::setEnum (PvString whichParameter, PvString value, bool dontCheckPar
           BOOST_LOG_TRIVIAL (info) << "Unable to get the parameter: " << whichParameter.GetAscii ();
           ostringstream errorDescription;
           errorDescription << "setEnum: Unable to get parameter: " << whichParameter.GetAscii ();
+
           throw i3ds::CommandError(error_value, errorDescription.str());
         }
 
@@ -326,15 +325,14 @@ EbusWrapper::setEnum (PvString whichParameter, PvString value, bool dontCheckPar
           ostringstream errorDescription;
           errorDescription << "setEnum: Error setting value: "<< value.GetAscii() <<
                            " for parameter: " << whichParameter.GetAscii();
+
           throw i3ds::CommandError(error_value, errorDescription.str());
-          return;
         }
       else
         {
           BOOST_LOG_TRIVIAL (info) << "Parameter value: " << value.GetAscii()
                                    << " set for parameter: " << whichParameter.GetAscii();
           return;
-
         }
 
     }
@@ -376,21 +374,21 @@ EbusWrapper::setBooleanParameter (PvString whichParameter, bool status)
   PvGenParameter *lParameter = lParameters->Get (whichParameter);
 
   PvResult result = static_cast<PvGenBoolean *> (lParameter)->SetValue (status);
-  if(result== PvResult::Code::OK )
-    {
-      BOOST_LOG_TRIVIAL (info) << "Boolean parameter: " << whichParameter.GetAscii () << " set to " << status;
-    }
-  else
+
+  if(result != PvResult::Code::OK )
     {
       BOOST_LOG_TRIVIAL (info) << "Error setting boolean parameter: " << whichParameter.GetAscii () << " to " << status;
+
       ostringstream errorDescription;
+
       errorDescription << "setBooleanParameter Option: Unable to set the parameter: "
                        << whichParameter.GetAscii ();
+
       throw i3ds::CommandError(error_value, errorDescription.str());
     }
+
+  BOOST_LOG_TRIVIAL (info) << "Boolean parameter: " << whichParameter.GetAscii () << " set to " << status;
 }
-
-
 
 
 // Sets an integer Parameter on device
@@ -442,212 +440,36 @@ EbusWrapper::setIntParameter (PvString whichParameter, int64_t value)
     /// TODO: Increment also?
 
     PvResult res = lvalueParameter->SetValue (value);
-    if (res.IsOK () != true)
+
+    if (!res.IsOK ())
       {
         BOOST_LOG_TRIVIAL (info) << "SetValue Error: "
                                  << whichParameter.GetAscii ();
-        ostringstream errorDescription;
+
+	ostringstream errorDescription;
         errorDescription << "setIntParameter: SetValue Error "<< whichParameter.GetAscii() ;
+
         throw i3ds::CommandError(error_value, errorDescription.str());
-
-
-        return false;
-      }
-    else
-      {
-        BOOST_LOG_TRIVIAL (info) << "SetValue Ok: "
-                                 << whichParameter.GetAscii () << "=" << value;
-        return true;
       }
 
+    BOOST_LOG_TRIVIAL (info) << "SetValue Ok: " << whichParameter.GetAscii () << "=" << value;
+
+    return true;
   }
 
 }
 
-
-/// \REMARK SourceSelector parameter does not return the Option All with getEnum.
-/// It also mixes the strings. But one can set it.
-/// \TODO How is it handled in ebusplayer?
 void
-EbusWrapper::setSourceBothStreams()
-{
-  getEnum("SourceSelector");
-  setEnum ("SourceSelector", "All", true);
-}
-
-
-
-
-// Todo This is actually a boolean!!!!
-bool
-EbusWrapper::getAutoExposureEnabled ()
-{
-  BOOST_LOG_TRIVIAL (info) << "Fetching parameter: getAutoExposureEnabled";
-
-  char *str = getEnum ("AutoExposure");
-  bool retval;
-
-  BOOST_LOG_TRIVIAL (info) << "Fetching parameter: getAutoExposureEnabled: "
-                           << str;
-
-  if (strcmp (str, "ON") == 0)
-    {
-      retval = true;
-    }
-  else
-    {
-      retval = false;
-    }
-
-  BOOST_LOG_TRIVIAL (info) << retval;
-
-  delete (str);
-  return retval;
-}
-
-int64_t
-EbusWrapper::getShutterTime ()
-{
-  BOOST_LOG_TRIVIAL (info) << "Fetching parameter: exposure";
-  return getParameter ("ShutterTimeValue");
-}
-
-int64_t
-EbusWrapper::getMaxShutterTime ()
-{
-  BOOST_LOG_TRIVIAL (info) << "Fetching max of parameter: MaxShutterTime";
-  return getMaxParameter ("MaxShutterTimeValue");
-}
-
-int64_t
-EbusWrapper::getGain ()
-{
-  BOOST_LOG_TRIVIAL (info) << "Fetching parameter: GainValue";
-
-  return getParameter ("GainValue");
-}
-
-void
-EbusWrapper::getSize(int64_t& size_x, int64_t& size_y)
-{
-  BOOST_LOG_TRIVIAL (info) << "Fetching parameter: region";
-
-  size_x = getParameter ("Width");
-  size_y = getParameter ("Height");
-}
-
-
-#ifdef HR_CAMERA
-int const EbusWrapper::trigger_interval_factor = 2;
-
-#elif defined(STEREO_CAMERA)
-int const EbusWrapper::trigger_interval_factor = 30;
-#else
-// The TIR Camera
-int const EbusWrapper::trigger_interval_factor = 30;
-#endif
-
-
-
-void
-EbusWrapper::setTriggerInterval ()
-{
-  BOOST_LOG_TRIVIAL (info) << "Set TriggerInterval: trigger_interval_value_: " << trigger_interval_value_;
-  setIntParameter ("TriggerInterval", trigger_interval_value_);
-
-}
-
-
-
-bool
-EbusWrapper::checkTriggerInterval (int64_t period_us)
-{
-  BOOST_LOG_TRIVIAL (info) << "Check TriggerInterval: Period: " << period_us <<" which equals "
-                           << 1e6/period_us<< "Hz";
-
-  int trigger_interval_value = period_us*trigger_interval_factor/1.0e6;
-
-
-  int min =  getMinParameter ("TriggerInterval");
-  int max =  getMaxParameter ("TriggerInterval");
-  BOOST_LOG_TRIVIAL (info) << "checkTriggerInterval: min: " << min << " max:" << max;
-  BOOST_LOG_TRIVIAL (info) << "TriggerInterval value tested: " << trigger_interval_value;
-
-  if(trigger_interval_value < min || trigger_interval_value > max)
-    {
-      BOOST_LOG_TRIVIAL (info) << "checkTriggerInterval out of range";
-      return false;
-    }
-  BOOST_LOG_TRIVIAL (info) << "TriggerInterval OK";
-  trigger_interval_value_ = trigger_interval_value;
-  return true;
-
-
-}
-
-void
-EbusWrapper::setShutterTime (int64_t value)
-{
-  BOOST_LOG_TRIVIAL (info) << "SetShutterTime (ShutterTimeValue): " << value;
-  setIntParameter ("ShutterTimeValue", value);
-}
-
-
-
-void
-EbusWrapper::setMaxShutterTime (int64_t value)
-{
-  BOOST_LOG_TRIVIAL (info) << "set MaxShutterTime (MaxShutterTimeValue): " << value;
-  setIntParameter ("MaxShutterTimeValue", value);
-}
-
-
-void
-EbusWrapper::setGain (int64_t value)
-{
-  BOOST_LOG_TRIVIAL (info) << "Set Gain(GainValue): " << value;
-  setIntParameter ("GainValue", value);
-}
-
-void
-EbusWrapper::setAutoExposureEnabled (bool enabled)
-{
-  BOOST_LOG_TRIVIAL (info) << "Set setAutoExposureEnabled(AutoExposure): "
-                           << enabled;
-  if (enabled)
-    {
-      setEnum ("AutoExposure", "ON");
-      setBooleanParameter ("AutoGain", true);
-      setBooleanParameter ("AutoShutterTime", true);
-
-    }
-  else
-    {
-      setBooleanParameter ("AutoGain", false);
-      setBooleanParameter ("AutoShutterTime", false);
-      setEnum ("AutoExposure", "OFF");
-
-    }
-
-}
-
-void
-EbusWrapper::do_start (bool free_running)
+EbusWrapper::Start(bool free_running, int64_t trigger_interval, int timeout_ms)
 {
   PV_SAMPLE_INIT ();
-  BOOST_LOG_TRIVIAL (info) << "--> EbusWrapper::do_start";
+  BOOST_LOG_TRIVIAL (info) << "--> EbusWrapper::StartFreeRunning";
 
-  // Set some parameters to be able to stream continuous
-  if(free_running)
+  if (free_running)
     {
       setEnum ("AcquisitionMode", "Continuous");
       setEnum ("TriggerMode", "Interval");
-      setIntParameter ("TriggerInterval", trigger_interval_value_);
-
-      BOOST_LOG_TRIVIAL (info)  << " trigger_interval_value_:"<< trigger_interval_value_;
-      BOOST_LOG_TRIVIAL (info)  << " trigger_interval_factor:"<< trigger_interval_factor;
-
-      samplingsTimeout_ = 1000.*(float)trigger_interval_value_ / (float)trigger_interval_factor*2.0;
+      setIntParameter ("TriggerInterval", trigger_interval);
     }
   else
     {
@@ -655,8 +477,12 @@ EbusWrapper::do_start (bool free_running)
       setEnum ("TriggerMode", "EXT_ONLY");
     }
 
+  BOOST_LOG_TRIVIAL (info)  << " trigger_interval_value_: "<< trigger_interval;
+
+  timeout_ = timeout_ms;
+
   stopSamplingLoop = false;
-  threadSamplingLoop = std::thread(&EbusWrapper::StartSamplingLoop, this);
+  threadSamplingLoop = std::thread(&EbusWrapper::SamplingLoop, this);
 }
 
 /////-------------------------------- Streaming part
@@ -673,8 +499,9 @@ EbusWrapper::OpenStream ()
   // Creates and open the stream object based on the selected device.
   PvResult lResult = PvResult::Code::INVALID_PARAMETER;
 
-  BOOST_LOG_TRIVIAL (info) << "--> OpenStream: "<<":"<<ip_address_<<":"
-                           << mConnectionID.GetAscii ()<<":"<<fetched_ipaddress.GetAscii();
+  BOOST_LOG_TRIVIAL (info) << "--> OpenStream "
+                           << " id: " << mConnectionID.GetAscii ()
+			   << " address: " << fetched_ipaddress.GetAscii();
 
   mStream = PvStream::CreateAndOpen (fetched_ipaddress.GetAscii(), &lResult);
 
@@ -832,7 +659,7 @@ EbusWrapper::StopAcquisition ()
   return true;
 }
 
-void EbusWrapper::do_stop()
+void EbusWrapper::Stop()
 {
   BOOST_LOG_TRIVIAL (info) << "--> EbusWrapper::do_stop: ";
 
@@ -846,25 +673,17 @@ void EbusWrapper::do_stop()
   TearDown (true);
 }
 
-
-//
-// Acquisition loop
-//
-
-void EbusWrapper::do_deactivate ()
+void EbusWrapper::Disconnect()
 {
   mDevice->Disconnect();
 }
 
 void
-EbusWrapper::StartSamplingLoop ()
+EbusWrapper::SamplingLoop ()
 {
-  BOOST_LOG_TRIVIAL (info) << "--> StartSamplingLoop";
+  BOOST_LOG_TRIVIAL (info) << "--> SamplingLoop";
 
   bool first = true;
-
-  char lDoodle[] = "|\\-|-/";
-  int lDoodleIndex = 0;
 
   int64_t lImageCountVal = 0;
   double lFrameRateVal = 0.0;
@@ -925,10 +744,10 @@ EbusWrapper::StartSamplingLoop ()
           // Retrieve next buffer
           PvBuffer *lBuffer = NULL;
           PvResult lOperationResult;
-          BOOST_LOG_TRIVIAL (info) << "sampling timeout:" << samplingsTimeout_;
-          PvResult lResult = mPipeline->RetrieveNextBuffer (&lBuffer,
-                             samplingsTimeout_,
-                             &lOperationResult);
+
+          BOOST_LOG_TRIVIAL (info) << "sampling timeout:" << timeout_;
+
+          PvResult lResult = mPipeline->RetrieveNextBuffer (&lBuffer, timeout_, &lOperationResult);
 
           if (lResult.IsOK ())
             {
@@ -944,50 +763,24 @@ EbusWrapper::StartSamplingLoop ()
                   mStream->GetParameters ()->GetFloatValue ("Bandwidth", lBandwidthVal);
 
                   // If the buffer contains an image, display width and height.
-                  uint32_t lWidth = 0, lHeight = 0;
+		  
                   if (lBuffer->GetPayloadType () == PvPayloadTypeImage)
                     {
                       // Get image specific buffer interface.
-                      PvImage *lImage = lBuffer->GetImage ();
+                      PvImage *lImage = lBuffer->GetImage();
+		      uint32_t lWidth = lImage->GetWidth();
+		      uint32_t lHeight = lImage->GetHeight();
 
-                      // Read width, height.
-                      lWidth = lImage->GetWidth ();
-                      lHeight = lImage->GetHeight ();
                       BOOST_LOG_TRIVIAL (info) << "Width: " << lWidth << " Height: "<< lHeight;
 
-                      clock::time_point next = clock::now();
-
-                      // BOOST_LOG_TRIVIAL (info) << "--> datapointer: " << lImage->GetDataPointer();
-                      // printf("Datapointer %p\n", lImage->GetDataPointer());
-                      operation_(lImage->GetDataPointer(), std::chrono::duration_cast<std::chrono::microseconds>(next.time_since_epoch()).count());
-
+                      operation_(lImage->GetDataPointer(), lWidth, lHeight);
                     }
-
-                  std::cout << fixed << setprecision (1);
-                  std::cout << lDoodle[lDoodleIndex];
-                  std::cout << " BlockID: " << uppercase << hex << setfill ('0')
-                            << setw (16) << lBuffer->GetBlockID () << " W: " << dec
-                            << lWidth << " H: " << lHeight << " " << lFrameRateVal
-                            << " FPS " << (lBandwidthVal / 1000000.0) << " Mb/s  \r";
-
-
-
-
                 }
 	      
               // We have an image - do some processing (...) and VERY IMPORTANT,
               // release the buffer back to the pipeline.
               mPipeline->ReleaseBuffer (lBuffer);
             }
-          else
-            {
-              // Timeout
-
-
-              BOOST_LOG_TRIVIAL(info) << "Image timeout " << lDoodle[lDoodleIndex] << std::endl;
-            }
-
-          ++lDoodleIndex %= 6;
         }
       else
         {

@@ -43,27 +43,21 @@ void signal_handler(int signum)
   running = false;
 }
 
-
-
 int main(int argc, char** argv)
 {
   unsigned int node_id;
 
-  std::string ip_address;
-  std::string camera_name;
-
-  bool is_stereo;
-  bool free_running;
-
+  std::string camera_type;
+  i3ds::CosineParameters param;
+  
   po::options_description desc("Allowed camera control options");
 
   desc.add_options()
   ("help,h", "Produce this message")
   ("node,n", po::value<unsigned int>(&node_id), "Node ID of camera")
-  ("ip-address,i", po::value<std::string>(&ip_address), "Use IP Address of camera to connect")
-  ("camera-name,c", po::value<std::string>(&camera_name), "Connect via (UserDefinedName) of Camera")
-  ("stereo,s", po::bool_switch(&is_stereo)->default_value(false), "Is stereo camera")
-  ("free-running,f", po::bool_switch(&free_running)->default_value(false), "Free-running sampling")
+  ("camera-name,c", po::value<std::string>(&param.camera_name), "Connect via (UserDefinedName) of Camera")
+  ("camera-type,t", po::value<std::string>(&camera_type),       "Camera type {hr, tir, stereo} set by launch script")
+  ("free-running,f", po::bool_switch(&param.free_running)->default_value(false), "Free-running sampling")
 
   ("verbose,v", "Print verbose output")
   ("quite,q", "Quiet ouput")
@@ -90,15 +84,36 @@ int main(int argc, char** argv)
 
   po::notify(vm);
 
+  BOOST_LOG_TRIVIAL(info) << "Node ID:     " << node_id;
+  BOOST_LOG_TRIVIAL(info) << "Camera name: " << param.camera_name;
+  BOOST_LOG_TRIVIAL(info) << "Camera type: " << camera_type;
+
+  if (camera_type == "hr")
+    {
+      param.is_stereo = false;
+      param.trigger_scale = 2;
+    }
+  else if (camera_type == "tir")
+    {
+      param.is_stereo = false;
+      param.trigger_scale = 30;
+    }
+  else if (camera_type == "stereo")
+    {
+      param.is_stereo = true;
+      param.trigger_scale = 2;
+    }
+  else
+    {
+      std::cout << "Unknown camera type: " << camera_type << std::endl;
+      return -1;
+    }
+
   i3ds::Context::Ptr context = i3ds::Context::Create();;
 
   i3ds::Server server(context);
 
-  BOOST_LOG_TRIVIAL(info) << "Using Nodeid: " << node_id;
-  BOOST_LOG_TRIVIAL(info) << "Using IP ADDRESS: " << ip_address;
-  BOOST_LOG_TRIVIAL(info) << "User defined camera name " << camera_name;
-
-  i3ds::CosineCamera camera(context, node_id, ip_address, camera_name, is_stereo, free_running);
+  i3ds::CosineCamera camera(context, node_id, param);
 
   camera.Attach(server);
 

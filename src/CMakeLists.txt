@@ -46,20 +46,14 @@ set (PLEORA_LINK_DIRECTORIES
 include_directories (${PLEORA_INCLUDE_DIRECTORIES})
 include_directories ("../include/")
 
-add_executable (i3ds-cosine-camera i3ds_suite_cameras.cpp ${SRCS})
-target_compile_options(i3ds-cosine-camera PRIVATE -Wno-unknown-pragmas)
-target_link_libraries (i3ds-cosine-camera -L${PUREGEV_ROOT}/lib/ ${LIBS} ${Boost_LIBRARIES})
-install(TARGETS i3ds-cosine-camera DESTINATION bin)
+add_executable (i3ds_cosine_camera i3ds_cosine_camera.cpp ${SRCS})
+target_compile_options(i3ds_cosine_camera PRIVATE -Wno-unknown-pragmas)
+target_link_libraries (i3ds_cosine_camera -L${PUREGEV_ROOT}/lib/ ${LIBS} ${Boost_LIBRARIES})
+install(TARGETS i3ds_cosine_camera DESTINATION bin)
 
-#Pleora camera need some environement variables set before running. 
-#Therefore a startup script that sets the environement 
+set (CAMERA_TYPES "hr" "stereo"  "tir")
 
-#  i3ds-cosine-tir:     10.0.1.111
-#  i3ds-cosine-hr:      10.0.1.116
-#  i3ds-cosine-stereo:  10.0.1.117
-
-set (START_FILE_NAME "hr" "stereo"  "tir")
-
-foreach(START_FILE ${START_FILE_NAME})
-  configure_file(start_pleora.sh  i3ds_cosine_${START_FILE}.sh)
-endforeach(START_FILE)
+foreach(CAMERA_TYPE ${CAMERA_TYPES})
+  configure_file(start_cosine.sh i3ds_cosine_${CAMERA_TYPE})
+  install(FILES i3ds_cosine_${CAMERA_TYPE} DESTINATION bin)
+endforeach(CAMERA_TYPE)
