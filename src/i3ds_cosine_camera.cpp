@@ -48,7 +48,7 @@ int main(int argc, char** argv)
   unsigned int node_id;
 
   std::string camera_type;
-  i3ds::CosineParameters param;
+  i3ds::CosineCamera::Parameters param;
 
   po::options_description desc("Allowed camera control options");
 
@@ -92,16 +92,19 @@ int main(int argc, char** argv)
     {
       param.is_stereo = false;
       param.trigger_scale = 2;
+      param.data_depth = 12;
     }
   else if (camera_type == "tir")
     {
       param.is_stereo = false;
       param.trigger_scale = 30;
+      param.data_depth = 16;
     }
   else if (camera_type == "stereo")
     {
       param.is_stereo = true;
       param.trigger_scale = 2;
+      param.data_depth = 12;
     }
   else
     {

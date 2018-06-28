@@ -26,11 +26,9 @@ namespace logging = boost::log;
 
 i3ds::CosineCamera::CosineCamera(Context::Ptr context,
                                  NodeID node,
-                                 CosineParameters& param)
+                                 Parameters param)
   : Camera(node),
-    is_stereo_(param.is_stereo),
-    free_running_(param.free_running),
-    trigger_scale_(param.trigger_scale),
+    param_(param),
     publisher_(context, node)
 {
   using namespace std::placeholders;
@@ -98,7 +96,7 @@ i3ds::CosineCamera::region() const
   int64_t sx = ebus_->getParameter("Width");
   int64_t sy = ebus_->getParameter("Height");
 
-  if (is_stereo_)
+  if (param_.is_stereo)
     {
       sy /= 2;
     }
@@ -120,7 +118,7 @@ i3ds::CosineCamera::do_activate()
 
   ebus_->Connect();
 
-  if (is_stereo_)
+  if (param_.is_stereo)
     {
       ebus_->setEnum("SourceSelector", "All", true);
     }
@@ -137,7 +135,7 @@ i3ds::CosineCamera::do_start()
   int64_t trigger = to_trigger(period());
   int timeout_ms = (int)(2 * period() / 1000);
 
-  ebus_->Start(free_running_, trigger, timeout_ms);
+  ebus_->Start(param_.free_running, trigger, timeout_ms);
 }
 
 void
@@ -159,13 +157,13 @@ i3ds::CosineCamera::do_deactivate()
 int64_t
 i3ds::CosineCamera::to_trigger(SamplePeriod period)
 {
-  return (period * trigger_scale_) / 1000000;
+  return (period * param_.trigger_scale) / 1000000;
 }
 
 SamplePeriod
 i3ds::CosineCamera::to_period(int64_t trigger)
 {
-  return (trigger * 1000000) / trigger_scale_;
+  return (trigger * 1000000) / param_.trigger_scale;
 }
 
 bool
@@ -266,7 +264,7 @@ i3ds::CosineCamera::send_sample(unsigned char *image, int width, int height)
   T_UInt16 sx = (T_UInt16) width;  // Known to be safe.
   T_UInt16 sy = (T_UInt16) height; // Known to be safe.
 
-  if (is_stereo_)
+  if (param_.is_stereo)
     {
       sy /= 2;
     }
@@ -274,15 +272,15 @@ i3ds::CosineCamera::send_sample(unsigned char *image, int width, int height)
   frame.descriptor.region.size_x = sx;
   frame.descriptor.region.size_y = sy;
   frame.descriptor.frame_mode = mode_mono;
-  frame.descriptor.data_depth = 12;
-  frame.descriptor.pixel_size = 2;
-  frame.descriptor.image_count = is_stereo_ ? 2 : 1;
+  frame.descriptor.data_depth = param_.data_depth;
+  frame.descriptor.pixel_size = param_.data_depth / 8 + 1;
+  frame.descriptor.image_count = param_.is_stereo ? 2 : 1;
 
   const size_t size = image_size(frame.descriptor);
 
   frame.append_image(image, size);
 
-  if (is_stereo_)
+  if (param_.is_stereo)
     {
       frame.append_image(image + size, size);
     }

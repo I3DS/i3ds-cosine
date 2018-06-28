@@ -23,19 +23,20 @@ class EbusWrapper;
 namespace i3ds
 {
 
-struct CosineParameters
-{
-  std::string camera_name;
-  bool is_stereo;
-  bool free_running;
-  int64_t trigger_scale;
-};
-
 class CosineCamera : public Camera
 {
 public:
 
-  CosineCamera(Context::Ptr context, NodeID id, CosineParameters& param);
+  struct Parameters
+  {
+    std::string camera_name;
+    bool is_stereo;
+    bool free_running;
+    int trigger_scale;
+    int data_depth;
+  };
+
+  CosineCamera(Context::Ptr context, NodeID id, Parameters param);
 
   virtual ~CosineCamera();
 
@@ -74,16 +75,14 @@ protected:
 
 private:
 
+  const Parameters param_;
+
   int64_t to_trigger(SamplePeriod period);
   SamplePeriod to_period(int64_t trigger);
 
   bool send_sample(unsigned char* image, int width, int height);
 
   void updateRegion();
-
-  const bool is_stereo_;
-  const bool free_running_;
-  const int64_t trigger_scale_;
 
   bool flash_enabled_;
   FlashStrength flash_strength_;
