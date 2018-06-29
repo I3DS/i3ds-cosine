@@ -135,6 +135,11 @@ i3ds::CosineCamera::do_start()
   int64_t trigger = to_trigger(period());
   int timeout_ms = (int)(2 * period() / 1000);
 
+  if (param_.free_running == false)
+    {
+      timeout_ms = 100;
+    }
+
   ebus_->Start(param_.free_running, trigger, timeout_ms);
 }
 
