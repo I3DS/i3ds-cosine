@@ -266,7 +266,7 @@ EbusWrapper::checkIfEnumOptionIsOK(PvString whichParameter,
     {
       const PvGenEnumEntry *aEntry;
 
-      static_cast<PvGenEnum *>(lGenParameter)->GetEntryByValue(i, &aEntry);
+      static_cast<PvGenEnum *>(lGenParameter)->GetEntryByIndex(i, &aEntry);
       PvString enumOption;
       aEntry->GetName(enumOption);
       BOOST_LOG_TRIVIAL(info) << "EnumText[" << i << "]: "
