@@ -470,14 +470,13 @@ EbusWrapper::Start(bool free_running, int64_t trigger_interval, int timeout_ms)
       setEnum("AcquisitionMode", "Continuous");
       setEnum("TriggerMode", "Interval");
       setIntParameter("TriggerInterval", trigger_interval);
+      BOOST_LOG_TRIVIAL(info)  << " trigger_interval_value_: "<< trigger_interval;
     }
   else
     {
       setEnum("AcquisitionMode", "Continuous");
       setEnum("TriggerMode", "EXT_ONLY");
     }
-
-  BOOST_LOG_TRIVIAL(info)  << " trigger_interval_value_: "<< trigger_interval;
 
   timeout_ = timeout_ms;
 
@@ -745,7 +744,6 @@ EbusWrapper::SamplingLoop()
           PvBuffer *lBuffer = NULL;
           PvResult lOperationResult;
 
-          BOOST_LOG_TRIVIAL(info) << "sampling timeout:" << timeout_;
 
           PvResult lResult = mPipeline->RetrieveNextBuffer(&lBuffer, timeout_, &lOperationResult);
 
@@ -781,11 +779,13 @@ EbusWrapper::SamplingLoop()
               // release the buffer back to the pipeline.
               mPipeline->ReleaseBuffer(lBuffer);
             }
+          BOOST_LOG_TRIVIAL(info) << "sampling timeout without receiving good image: " << timeout_ << "ms";
         }
       else
         {
           // No stream/pipeline, must be in recovery. Wait a bit...
           PvSleepMs(100);
+
         }
     }
 
