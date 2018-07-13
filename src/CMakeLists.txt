@@ -43,7 +43,7 @@ set (PLEORA_INCLUDE_DIRECTORIES
   )
 
 
-if (BUILD_EMBEDDED)
+if (BUILD_EMBEDDED OR BUILD_PETALINUX)
   include_directories (SYSTEM  "${CMAKE_FIND_ROOT_PATH}/usr/include/ebus")
   set (PLEORA_LINK_DIRECTORY -L"${CMAKE_FIND_ROOT_PATH}/usr/lib/ebus/" -L"${CMAKE_FIND_ROOT_PATH}/usr/lib/ebus/genicam/bin/Linux64_ARM/")
   set (LIBS
@@ -59,11 +59,11 @@ if (BUILD_EMBEDDED)
     Log_gcc492_v3_0
     NodeMapData_gcc492_v3_0
     )
-else (BUILD_EMBEDDED)
+else (BUILD_EMBEDDED OR BUILD_PETALINUX)
   set (PLEORA_LINK_DIRECTORY
     ${PUREGEV_ROOT}/lib/
     )
-endif (BUILD_EMBEDDED)
+endif (BUILD_EMBEDDED OR BUILD_PETALINUX)
 
 include_directories (${PLEORA_INCLUDE_DIRECTORIES})
 include_directories ("../include/")
