@@ -44,8 +44,11 @@ set (PLEORA_INCLUDE_DIRECTORIES
 
 
 if (BUILD_EMBEDDED OR BUILD_PETALINUX)
-  include_directories (SYSTEM  "${CMAKE_FIND_ROOT_PATH}/usr/include/ebus")
-  set (PLEORA_LINK_DIRECTORY -L"${CMAKE_FIND_ROOT_PATH}/usr/lib/ebus/" -L"${CMAKE_FIND_ROOT_PATH}/usr/lib/ebus/genicam/bin/Linux64_ARM/")
+  find_file(pylon_INCLUDE_DIR include/ebus)
+  find_file(pylon_LIB_DIR lib/ebus)
+
+  include_directories (SYSTEM  "${pylon_INCLUDE_DIR}")
+  set (PLEORA_LINK_DIRECTORY -L"${pylon_LIB_DIR}" -L"${pylon_LIB_DIR}/genicam/bin/Linux64_ARM/")
   set (LIBS
     ${LIBS}
     EbTransportLayerLib
@@ -77,5 +80,5 @@ set (CAMERA_TYPES "hr" "stereo"  "tir")
 
 foreach(CAMERA_TYPE ${CAMERA_TYPES})
   configure_file(start_cosine.sh i3ds_cosine_${CAMERA_TYPE})
-  install(FILES i3ds_cosine_${CAMERA_TYPE} DESTINATION bin)
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/i3ds_cosine_${CAMERA_TYPE} DESTINATION bin)
 endforeach(CAMERA_TYPE)
