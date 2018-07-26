@@ -46,6 +46,7 @@ void signal_handler(int signum)
 int main(int argc, char** argv)
 {
   unsigned int node_id;
+  NodeID trigger_node_id;
 
   std::string camera_type;
   i3ds::CosineCamera::Parameters param;
@@ -58,6 +59,11 @@ int main(int argc, char** argv)
   ("camera-name,c", po::value<std::string>(&param.camera_name), "Connect via (UserDefinedName) of Camera")
   ("camera-type,t", po::value<std::string>(&camera_type),       "Camera type {hr, tir, stereo} set by launch script")
   ("free-running,f", po::bool_switch(&param.free_running)->default_value(false), "Free-running sampling")
+  ("trigger-node", po::value<NodeID>(&trigger_node_id)->default_value(20), "Node ID of trigger service.")
+  ("trigger-source", po::value<TriggerGenerator>(&param.trigger_generator)->default_value(2), "Trigger generator.")
+  ("trigger-camera-output", po::value<TriggerOutput>(&param.trigger_camera_output)->default_value(1), "Trigger output for the camera(s).")
+  ("trigger-camera-offset", po::value<TriggerOffset>(&param.trigger_camera_offset)->default_value(0), "Trigger offset for the camera(s).")
+  ("trigger-camera-inverted", po::bool_switch(&param.trigger_camera_inverted)->default_value(false), "Trigger inverted for the camera(s).")
 
   ("verbose,v", "Print verbose output")
   ("quite,q", "Quiet ouput")
@@ -114,9 +120,17 @@ int main(int argc, char** argv)
 
   i3ds::Context::Ptr context = i3ds::Context::Create();;
 
+  i3ds::TriggerClient::Ptr trigger;
+
+  if (!param.free_running)
+  {
+    trigger = std::make_shared<i3ds::TriggerClient>(context, trigger_node_id);
+  }
+
+
   i3ds::Server server(context);
 
-  i3ds::CosineCamera camera(context, node_id, param);
+  i3ds::CosineCamera camera(context, node_id, param, trigger);
 
   camera.Attach(server);
 

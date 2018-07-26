@@ -15,6 +15,7 @@
 #include "i3ds/topic.hpp"
 #include "i3ds/publisher.hpp"
 #include "i3ds/camera_sensor.hpp"
+#include <i3ds/trigger_client.hpp>
 
 #include <memory>
 
@@ -34,9 +35,14 @@ public:
     bool free_running;
     int trigger_scale;
     int data_depth;
+
+    TriggerGenerator trigger_generator;
+    TriggerOutput trigger_camera_output;
+    TriggerOffset trigger_camera_offset;
+    bool trigger_camera_inverted;
   };
 
-  CosineCamera(Context::Ptr context, NodeID id, Parameters param);
+  CosineCamera(Context::Ptr context, NodeID id, Parameters param, TriggerClient::Ptr trigger = nullptr);
 
   virtual ~CosineCamera();
 
@@ -79,6 +85,9 @@ private:
 
   int64_t to_trigger(SamplePeriod period);
   SamplePeriod to_period(int64_t trigger);
+  void set_trigger(TriggerOutput channel, TriggerOffset offset, bool inverted);
+  void clear_trigger(TriggerOutput channel);
+
 
   bool send_sample(unsigned char* image, int width, int height);
 
@@ -93,6 +102,10 @@ private:
   Publisher publisher_;
 
   std::unique_ptr<EbusWrapper> ebus_;
+
+  TriggerClient::Ptr trigger_;
+  TriggerOutputSet trigger_outputs_;
+
 };
 
 } // namespace i3ds

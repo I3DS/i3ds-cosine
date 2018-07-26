@@ -26,10 +26,12 @@ namespace logging = boost::log;
 
 i3ds::CosineCamera::CosineCamera(Context::Ptr context,
                                  NodeID node,
-                                 Parameters param)
+                                 Parameters param,
+				 TriggerClient::Ptr trigger)
   : Camera(node),
     param_(param),
-    publisher_(context, node)
+    publisher_(context, node),
+    trigger_(trigger)
 {
   using namespace std::placeholders;
 
@@ -123,6 +125,12 @@ i3ds::CosineCamera::do_activate()
       ebus_->setEnum("SourceSelector", "All", true);
     }
 
+  if (trigger_) {
+    set_trigger(param_.trigger_camera_output, param_.trigger_camera_offset,
+		param_.trigger_camera_inverted);
+  }
+
+
   BOOST_LOG_TRIVIAL(info) << "Initial shutter: " << shutter();
   BOOST_LOG_TRIVIAL(info) << "Initial gain:    " << gain();
 }
@@ -135,10 +143,16 @@ i3ds::CosineCamera::do_start()
   int64_t trigger = to_trigger(period());
   int timeout_ms = (int)(2 * period() / 1000);
 
-  if (param_.free_running == false)
-    {
-      timeout_ms = 100;
-    }
+  if (!param_.free_running)
+  {
+    timeout_ms = 200;
+  }
+  if (trigger_) {
+    trigger_->set_generator(param_.trigger_generator, period());
+    trigger_->enable_channels(trigger_outputs_);
+  } else {
+    BOOST_LOG_TRIVIAL(warning) << "Not free running without trigger.";
+  }
 
   ebus_->Start(param_.free_running, trigger, timeout_ms);
 }
@@ -147,6 +161,10 @@ void
 i3ds::CosineCamera::do_stop()
 {
   BOOST_LOG_TRIVIAL(info) << "do_stop()";
+  if (trigger_)
+  {
+    trigger_->disable_channels(trigger_outputs_);
+  }
 
   ebus_->Stop();
 }
@@ -157,6 +175,8 @@ i3ds::CosineCamera::do_deactivate()
   BOOST_LOG_TRIVIAL(info) << "do_deactivate()";
 
   ebus_->Disconnect();
+
+  trigger_outputs_.clear();
 }
 
 int64_t
@@ -293,4 +313,22 @@ i3ds::CosineCamera::send_sample(unsigned char *image, int width, int height)
   publisher_.Send<Camera::FrameTopic>(frame);
 
   return true;
+}
+
+
+void
+i3ds::CosineCamera::set_trigger(TriggerOutput channel, TriggerOffset offset, bool inverted)
+{
+  // Set the channel to fire at offset with 100 us pulse.
+  trigger_->set_internal_channel(channel, param_.trigger_generator, offset, 100, inverted);
+
+  // Enable the trigger on do_start.
+  trigger_outputs_.insert(channel);
+}
+
+void
+i3ds::CosineCamera::clear_trigger(TriggerOutput channel)
+{
+  // Do not enable the trigger on do_start.
+  trigger_outputs_.erase(channel);
 }
