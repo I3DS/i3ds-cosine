@@ -324,6 +324,7 @@ i3ds::CosineCamera::set_trigger(TriggerOutput channel, TriggerOffset offset, boo
 
   // Enable the trigger on do_start.
   trigger_outputs_.insert(channel);
+  BOOST_LOG_TRIVIAL(info) << "Trigger inserted done Ok. channel no: ";
 }
 
 void
