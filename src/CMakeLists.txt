@@ -14,6 +14,7 @@ message(STATUS "EBUS_INCLUDE=${EBUS_INCLUDE_DIR}")
 set (SRCS
    ebus_wrapper.cpp
    cosine_camera.cpp
+   serial_communicator.cpp
    )
 
 set (LIBS
