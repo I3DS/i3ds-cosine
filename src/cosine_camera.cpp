@@ -126,8 +126,7 @@ i3ds::CosineCamera::do_activate()
     }
 
   if (trigger_) {
-    set_trigger(param_.trigger_camera_output, param_.trigger_camera_offset,
-		param_.trigger_camera_inverted);
+    set_trigger(param_.trigger_camera_output, param_.trigger_camera_offset);
   }
 
 
@@ -317,10 +316,10 @@ i3ds::CosineCamera::send_sample(unsigned char *image, int width, int height)
 
 
 void
-i3ds::CosineCamera::set_trigger(TriggerOutput channel, TriggerOffset offset, bool inverted)
+i3ds::CosineCamera::set_trigger(TriggerOutput channel, TriggerOffset offset)
 {
   // Set the channel to fire at offset with 100 us pulse.
-  trigger_->set_internal_channel(channel, param_.trigger_generator, offset, 100, inverted);
+  trigger_->set_internal_channel(channel, param_.trigger_generator, offset, 100, false);
 
   // Enable the trigger on do_start.
   trigger_outputs_.insert(channel);

@@ -85,7 +85,7 @@ private:
 
   int64_t to_trigger(SamplePeriod period);
   SamplePeriod to_period(int64_t trigger);
-  void set_trigger(TriggerOutput channel, TriggerOffset offset, bool inverted);
+  void set_trigger(TriggerOutput channel, TriggerOffset offset);
   void clear_trigger(TriggerOutput channel);
 
 
