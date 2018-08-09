@@ -175,6 +175,9 @@ i3ds::CosineCamera::do_deactivate()
 
   ebus_->Disconnect();
 
+  pattern_enabled_ = false;
+  pattern_sequence_ = 0;
+
   trigger_outputs_.clear();
 }
 
@@ -263,16 +266,37 @@ i3ds::CosineCamera::handle_flash(FlashService::Data& command)
 void
 i3ds::CosineCamera::handle_pattern(PatternService::Data& command)
 {
-  BOOST_LOG_TRIVIAL(info) << "do_pattern()";
+  BOOST_LOG_TRIVIAL(info) << "handle_pattern()";
 
   check_standby();
+
+  if (!trigger_)
+    {
+      throw i3ds::CommandError(error_other, "Pattern not supported in free-running mode");
+    }
 
   pattern_enabled_ = command.request.enable;
 
   if (command.request.enable)
     {
-      // TODO: Use flash and trigger clients.
+      // Only support one pattern sequence, not controllable as of now.
+      if (command.request.sequence != 1)
+	{
+	  throw i3ds::CommandError(error_value, "Unsupported pattern sequence");
+	}
+
       pattern_sequence_ = command.request.sequence;
+
+      // Enable trigger for flash.
+      set_trigger(param_.pattern_output, param_.pattern_offset);
+    }
+  else
+    {
+      // Reset pattern sequence to disabled.
+      pattern_sequence_ = 0;
+
+      // Clear trigger, not enabled when operational.
+      clear_trigger(param_.pattern_output);
     }
 }
 
