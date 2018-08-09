@@ -288,7 +288,7 @@ i3ds::CosineCamera::handle_pattern(PatternService::Data& command)
       pattern_sequence_ = command.request.sequence;
 
       // Enable trigger for flash.
-      set_trigger(param_.pattern_output, param_.pattern_offset);
+      set_trigger(param_.trigger_pattern_output, param_.trigger_pattern_offset);
     }
   else
     {
@@ -296,7 +296,7 @@ i3ds::CosineCamera::handle_pattern(PatternService::Data& command)
       pattern_sequence_ = 0;
 
       // Clear trigger, not enabled when operational.
-      clear_trigger(param_.pattern_output);
+      clear_trigger(param_.trigger_pattern_output);
     }
 }
 

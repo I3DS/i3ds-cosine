@@ -63,7 +63,11 @@ int main(int argc, char** argv)
   ("trigger-source", po::value<TriggerGenerator>(&param.trigger_generator)->default_value(2), "Trigger generator.")
   ("trigger-camera-output", po::value<TriggerOutput>(&param.trigger_camera_output)->default_value(1), "Trigger output for the camera(s).")
   ("trigger-camera-offset", po::value<TriggerOffset>(&param.trigger_camera_offset)->default_value(0), "Trigger offset for the camera(s).")
-  ("trigger-camera-inverted", po::bool_switch(&param.trigger_camera_inverted)->default_value(false), "Trigger inverted for the camera(s).")
+  ("trigger-camera-inverted", po::bool_switch(&param.trigger_camera_inverted)->default_value(false), "Trigger inverted for the camera(s).(Not in use)")
+
+  ("trigger-pattern-output", po::value<int>(&param.trigger_pattern_output)->default_value(6),
+     "Trigger output for pattern, 0 to disable.")
+  ("trigger-pattern-offset", po::value<int>(&param.trigger_pattern_offset)->default_value(0), "Trigger offset for pattern (us).")
 
   ("verbose,v", "Print verbose output")
   ("quite,q", "Quiet ouput")

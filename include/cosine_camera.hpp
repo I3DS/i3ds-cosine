@@ -39,10 +39,11 @@ public:
     TriggerGenerator trigger_generator;
     TriggerOutput trigger_camera_output;
     TriggerOffset trigger_camera_offset;
+
     bool trigger_camera_inverted;
 
-    int pattern_output;
-    int pattern_offset;
+    int trigger_pattern_output;
+    int trigger_pattern_offset;
   };
 
   CosineCamera(Context::Ptr context, NodeID id, Parameters param, TriggerClient::Ptr trigger = nullptr);
