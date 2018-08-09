@@ -40,10 +40,10 @@ public:
     TriggerOutput trigger_camera_output;
     TriggerOffset trigger_camera_offset;
 
-    bool trigger_camera_inverted;
+    bool trigger_camera_inverted; // Not used at the moment
 
-    int trigger_pattern_output;
-    int trigger_pattern_offset;
+    TriggerOutput trigger_pattern_output;
+    TriggerOffset trigger_pattern_offset;
   };
 
   CosineCamera(Context::Ptr context, NodeID id, Parameters param, TriggerClient::Ptr trigger = nullptr);
