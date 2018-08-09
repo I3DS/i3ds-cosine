@@ -37,6 +37,8 @@ namespace logging = boost::log;
 
 volatile bool running;
 
+#define DEFAULT_WA_FLASH_SERIAL_PORT "/dev/ttyS3"
+
 void signal_handler(int signum)
 {
   BOOST_LOG_TRIVIAL(info) << "do_deactivate()";
@@ -59,18 +61,24 @@ int main(int argc, char** argv)
   ("camera-name,c", po::value<std::string>(&param.camera_name), "Connect via (UserDefinedName) of Camera")
   ("camera-type,t", po::value<std::string>(&camera_type),       "Camera type {hr, tir, stereo} set by launch script")
   ("free-running,f", po::bool_switch(&param.free_running)->default_value(false), "Free-running sampling")
+
   ("trigger-node", po::value<NodeID>(&trigger_node_id)->default_value(20), "Node ID of trigger service.")
   ("trigger-source", po::value<TriggerGenerator>(&param.trigger_generator)->default_value(2), "Trigger generator.")
   ("trigger-camera-output", po::value<TriggerOutput>(&param.trigger_camera_output)->default_value(1), "Trigger output for the camera(s).")
   ("trigger-camera-offset", po::value<TriggerOffset>(&param.trigger_camera_offset)->default_value(0), "Trigger offset for the camera(s).")
   ("trigger-camera-inverted", po::bool_switch(&param.trigger_camera_inverted)->default_value(false), "Trigger inverted for the camera(s).(Not in use)")
 
+  ("trigger-flash-output", po::value<TriggerOutput>(&param.flash_output)->default_value(8),
+     "Trigger output for flash, 0 to disable.")
+  ("flash-port", po::value<std::string>(&param.wa_flash_port)->default_value(DEFAULT_WA_FLASH_SERIAL_PORT), "Port name of WA flash")
+  ("trigger-flash-offset", po::value<TriggerOffset>(&param.flash_offset)->default_value(4200), "Trigger offset for flash (us).")
+
   ("trigger-pattern-output", po::value<TriggerOutput>(&param.trigger_pattern_output)->default_value(6),
      "Trigger output for pattern, 0 to disable.")
   ("trigger-pattern-offset", po::value<TriggerOffset>(&param.trigger_pattern_offset)->default_value(0), "Trigger offset for pattern (us).")
 
   ("verbose,v", "Print verbose output")
-  ("quite,q", "Quiet ouput")
+  ("quite,q", "Quiet output")
   ("print", "Print the camera configuration")
   ;
 

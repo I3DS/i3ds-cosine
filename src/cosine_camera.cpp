@@ -46,6 +46,15 @@ i3ds::CosineCamera::CosineCamera(Context::Ptr context,
 
   pattern_enabled_ = false;
   pattern_sequence_ = 0;
+
+
+  if (trigger_)
+      {
+        // Only wait 100 ms for trigger service.
+        trigger_->set_timeout(100);
+      }
+
+  flash_configurator_ = std::unique_ptr<SerialCommunicator>(new SerialCommunicator(param.wa_flash_port.c_str()));
 }
 
 i3ds::CosineCamera::~CosineCamera()
@@ -254,13 +263,77 @@ i3ds::CosineCamera::handle_flash(FlashService::Data& command)
 
   check_standby();
 
+  if (!trigger_)
+    {
+      throw i3ds::CommandError(error_other, "Flash not supported in free-running mode");
+    }
+
   flash_enabled_ = command.request.enable;
 
   if (command.request.enable)
     {
-      // TODO: Use flash and trigger clients.
       flash_strength_ = command.request.strength;
+
+
+      if (flash_strength_ > 100)
+      {
+	throw i3ds::CommandError(error_value, "The flash can not give more than 100%");
+      }
+      BOOST_LOG_TRIVIAL(info) << "handle_flash()";
+      float flash_duration_in_ms;
+
+      if (auto_exposure_enabled())
+      {
+	//flash_duration_in_ms = ebus_->AutoExposureTimeAbsUpperLimit.GetValue() / 1000.;
+	flash_duration_in_ms = ebus_->getParameter("MaxShutterTimeValue") / 1000; // Camera parameter is in uS
+
+      }
+      else
+      {
+	flash_duration_in_ms = ebus_->getParameter("ShutterTimeValue") / 1000; // Camera parameter is in uS
+      }
+      BOOST_LOG_TRIVIAL(info) << "handle_flash()" << flash_duration_in_ms;
+
+      // Upper limit for flash
+      if (flash_duration_in_ms > 3)
+      {
+	flash_duration_in_ms = 3;
+      }
+
+      /// Remark: Err 5 is a out of range warning for one parameter.
+      /// It is fixed to valid value.
+      /// But, it looks as there is a limit with a relationship between duration and flash strength
+      /// http://www.gardasoft.com/downloads/?f=112
+      //  Page 13(Read it)
+      ///
+      //Output brightness		850nm variant    | 			|	White variant
+      //			Allowed pulsewidth |Allowed duty cycle 	| Allowed pulse width   |   Allowed duty cycle
+      // 0% to  20% 		3ms 			6% 			3ms 			3%
+      //21% to  30% 		3ms 			6%	 		2ms 			3%
+      //31% to  50% 		3ms 			3% 			2ms 			2%
+      //51% to 100% 		2ms 			3% 			1ms 			1%
+
+
+
+
+      flash_configurator_->sendConfigurationParameters (
+	1, 			// Configure strobe output
+	flash_duration_in_ms,	// Pulse width ms
+	0.01, 		// Delay from trigger to pulse in ms(0.01 to 999)
+	flash_strength_	/// Settings in percent
+	); 			// 5th parameter retrigger delay in ms(optional not used)
+
+      // Enable trigger for flash.
+      set_trigger(param_.flash_output, param_.flash_offset);
+
+
     }
+  else
+    {
+      // Clear trigger, not enabled when operational.
+      clear_trigger(param_.flash_output);
+    }
+
 }
 
 void

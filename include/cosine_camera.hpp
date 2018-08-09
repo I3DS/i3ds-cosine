@@ -17,6 +17,9 @@
 #include "i3ds/camera_sensor.hpp"
 #include <i3ds/trigger_client.hpp>
 
+
+#include "serial_communicator.hpp"
+
 #include <memory>
 
 class EbusWrapper;
@@ -40,10 +43,14 @@ public:
     TriggerOutput trigger_camera_output;
     TriggerOffset trigger_camera_offset;
 
+    TriggerOutput flash_output;
+    TriggerOffset flash_offset;
+
     bool trigger_camera_inverted; // Not used at the moment
 
     TriggerOutput trigger_pattern_output;
     TriggerOffset trigger_pattern_offset;
+    std::string wa_flash_port;
   };
 
   CosineCamera(Context::Ptr context, NodeID id, Parameters param, TriggerClient::Ptr trigger = nullptr);
@@ -94,6 +101,9 @@ private:
 
 
   bool send_sample(unsigned char* image, int width, int height);
+
+  std::unique_ptr<SerialCommunicator> flash_configurator_;
+
 
   void updateRegion();
 
