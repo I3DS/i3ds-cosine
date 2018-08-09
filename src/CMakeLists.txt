@@ -62,14 +62,15 @@ if (BUILD_EMBEDDED OR BUILD_PETALINUX)
     Log_gcc492_v3_0
     NodeMapData_gcc492_v3_0
     )
+  include_directories (${PLEORA_INCLUDE_DIRECTORIES})
 else (BUILD_EMBEDDED OR BUILD_PETALINUX)
+  include_directories (${EBUS_INCLUDE_DIR})
   set (PLEORA_LINK_DIRECTORY
-    ${PUREGEV_ROOT}/lib/
+    -L"${PUREGEV_ROOT}/lib/"
     )
 endif (BUILD_EMBEDDED OR BUILD_PETALINUX)
 
-include_directories (${PLEORA_INCLUDE_DIRECTORIES})
-include_directories ("../include/")
+include_directories ("../include/" )
 
 add_executable (i3ds_cosine_camera i3ds_cosine_camera.cpp ${SRCS})
 target_compile_options(i3ds_cosine_camera PRIVATE -Wno-unknown-pragmas)
