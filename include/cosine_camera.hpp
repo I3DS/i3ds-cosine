@@ -17,6 +17,9 @@
 #include "i3ds/camera_sensor.hpp"
 #include <i3ds/trigger_client.hpp>
 
+#include <i3ds/flash_client.hpp>
+
+
 
 #include "serial_communicator.hpp"
 
@@ -51,9 +54,11 @@ public:
     TriggerOutput trigger_pattern_output;
     TriggerOffset trigger_pattern_offset;
     std::string wa_flash_port;
+
+
   };
 
-  CosineCamera(Context::Ptr context, NodeID id, Parameters param, TriggerClient::Ptr trigger = nullptr);
+  CosineCamera(Context::Ptr context, NodeID id, NodeID flash_node_id, Parameters param, TriggerClient::Ptr trigger = nullptr);
 
   virtual ~CosineCamera();
 
@@ -75,6 +80,8 @@ public:
   virtual PatternSequence pattern_sequence() const {return pattern_sequence_;}
 
   virtual bool is_sampling_supported(SampleCommand sample);
+
+
 
 protected:
 
@@ -119,6 +126,8 @@ private:
 
   TriggerClient::Ptr trigger_;
   TriggerOutputSet trigger_outputs_;
+
+  FlashClient flash_client;
 
 };
 

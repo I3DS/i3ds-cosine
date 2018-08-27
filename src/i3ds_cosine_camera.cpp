@@ -49,6 +49,7 @@ int main(int argc, char** argv)
 {
   unsigned int node_id;
   NodeID trigger_node_id;
+  NodeID flash_node_id;
 
   std::string camera_type;
   i3ds::CosineCamera::Parameters param;
@@ -71,6 +72,8 @@ int main(int argc, char** argv)
   ("trigger-flash-output", po::value<TriggerOutput>(&param.flash_output)->default_value(8),
      "Trigger output for flash, 0 to disable.")
   ("flash-port", po::value<std::string>(&param.wa_flash_port)->default_value(DEFAULT_WA_FLASH_SERIAL_PORT), "Port name of WA flash")
+  ("flash-node", po::value<NodeID>(&flash_node_id)->default_value(21), "Node ID of flash service.")
+
   ("trigger-flash-offset", po::value<TriggerOffset>(&param.flash_offset)->default_value(4200), "Trigger offset for flash (us).")
 
   ("trigger-pattern-output", po::value<TriggerOutput>(&param.trigger_pattern_output)->default_value(6),
@@ -142,7 +145,7 @@ int main(int argc, char** argv)
 
   i3ds::Server server(context);
 
-  i3ds::CosineCamera camera(context, node_id, param, trigger);
+  i3ds::CosineCamera camera(context, node_id, flash_node_id, param, trigger );
 
   camera.Attach(server);
 

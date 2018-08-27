@@ -26,12 +26,14 @@ namespace logging = boost::log;
 
 i3ds::CosineCamera::CosineCamera(Context::Ptr context,
                                  NodeID node,
+				 NodeID flash_node_id,
                                  Parameters param,
 				 TriggerClient::Ptr trigger)
   : Camera(node),
     param_(param),
     publisher_(context, node),
-    trigger_(trigger)
+    trigger_(trigger),
+    flash_client(context, flash_node_id)
 {
   using namespace std::placeholders;
 
