@@ -56,7 +56,16 @@ i3ds::CosineCamera::CosineCamera(Context::Ptr context,
         trigger_->set_timeout(100);
       }
 
-  flash_configurator_ = std::unique_ptr<SerialCommunicator>(new SerialCommunicator(param.wa_flash_port.c_str()));
+  //flash_configurator_ = std::unique_ptr<SerialCommunicator>(new SerialCommunicator(param.wa_flash_port.c_str()));
+
+
+  //i3ds::Context::Ptr context;
+
+  // context = i3ds::Context::Create();
+ // BOOST_LOG_TRIVIAL(info) << "Connecting to Wide Angular Flash Server with node ID: " << node;
+  //i3ds::FlashClient flash_client(context, node);
+ // BOOST_LOG_TRIVIAL(trace) << "---> [OK]";
+
 }
 
 i3ds::CosineCamera::~CosineCamera()
@@ -317,7 +326,7 @@ i3ds::CosineCamera::handle_flash(FlashService::Data& command)
 
 
 
-
+/*
       flash_configurator_->sendConfigurationParameters (
 	1, 			// Configure strobe output
 	flash_duration_in_ms,	// Pulse width ms
@@ -325,8 +334,22 @@ i3ds::CosineCamera::handle_flash(FlashService::Data& command)
 	flash_strength_	/// Settings in percent
 	); 			// 5th parameter retrigger delay in ms(optional not used)
 
+  */
+    /*
+      i3ds::Context::Ptr context;
+
+       context = i3ds::Context::Create();
+       BOOST_LOG_TRIVIAL(info) << "Connecting to Wide Angular Flash Server with node ID: " << node_id;
+       i3ds::FlashClient flash_client(context, node_id);
+       BOOST_LOG_TRIVIAL(trace) << "---> [OK]";
+*/
+
+      flash_client.set_flash(flash_duration_in_ms, flash_strength_);
+
+
+
       // Enable trigger for flash.
-      set_trigger(param_.flash_output, param_.flash_offset);
+     // set_trigger(param_.flash_output, param_.flash_offset);
 
 
     }
