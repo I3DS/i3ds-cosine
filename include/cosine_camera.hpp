@@ -20,9 +20,6 @@
 #include <i3ds/flash_client.hpp>
 
 
-
-#include "serial_communicator.hpp"
-
 #include <memory>
 
 class EbusWrapper;
@@ -108,8 +105,6 @@ private:
 
 
   bool send_sample(unsigned char* image, int width, int height);
-
-  std::unique_ptr<SerialCommunicator> flash_configurator_;
 
 
   void updateRegion();
