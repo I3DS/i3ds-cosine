@@ -278,28 +278,35 @@ i3ds::CosineCamera::handle_flash(FlashService::Data& command)
 
       if (flash_strength_ > 100)
       {
+	BOOST_LOG_TRIVIAL(info) << "The flash can not give more than 100%";
 	throw i3ds::CommandError(error_value, "The flash can not give more than 100%");
       }
-      BOOST_LOG_TRIVIAL(info) << "handle_flash()";
-      float flash_duration_in_ms;
+
+      float flash_duration_in_us;
 
       if (auto_exposure_enabled())
       {
 	//flash_duration_in_ms = ebus_->AutoExposureTimeAbsUpperLimit.GetValue() / 1000.;
-	flash_duration_in_ms = ebus_->getParameter("MaxShutterTimeValue") / 1000; // Camera parameter is in uS
-
+	flash_duration_in_us = ebus_->getParameter("MaxShutterTimeValue"); // Camera parameter is in uS
       }
       else
       {
-	flash_duration_in_ms = ebus_->getParameter("ShutterTimeValue") / 1000; // Camera parameter is in uS
+	flash_duration_in_us = ebus_->getParameter("ShutterTimeValue"); // Camera parameter is in uS
       }
-      BOOST_LOG_TRIVIAL(info) << "handle_flash()" << flash_duration_in_ms;
+      BOOST_LOG_TRIVIAL(info) << "handle_flash() Flash duration in us: " << flash_duration_in_us;
 
       // Upper limit for flash
-      if (flash_duration_in_ms > 3)
+      if (flash_duration_in_us > 3000)
       {
-	flash_duration_in_ms = 3;
+	flash_duration_in_us = 3000;
       }
+
+      if (flash_duration_in_us <= 10)
+	{
+	  flash_duration_in_us = 10;
+	}
+
+
 
       /// Remark: Err 5 is a out of range warning for one parameter.
       /// It is fixed to valid value.
