@@ -12,6 +12,7 @@
 #include <sstream>
 #include <iomanip>
 #include <memory>
+#include <exception>
 
 #include "cosine_camera.hpp"
 #include "ebus_wrapper.hpp"
@@ -314,10 +315,16 @@ i3ds::CosineCamera::handle_flash(FlashService::Data& command)
       //51% to 100% 		2ms 			3% 			1ms 			1%
 
 
+      try {
+	  flash_client.set_flash(flash_duration_in_us, flash_strength_);
+      } catch(std::exception & e)
+	{
+	  // Enable trigger for flash.
+	  set_trigger(param_.flash_output, param_.flash_offset);
 
-      flash_client.set_flash(flash_duration_in_ms, flash_strength_);
+	  throw;
+	}
 
-      // Enable trigger for flash.
       set_trigger(param_.flash_output, param_.flash_offset);
     }
   else
