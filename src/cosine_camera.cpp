@@ -335,6 +335,7 @@ i3ds::CosineCamera::handle_flash(FlashService::Data& command)
 	  throw;
 	}
 
+      BOOST_LOG_TRIVIAL(info) <<  "start/set flash trigger output: " << param_.flash_offset << " flash_offset" << param_.flash_offset;
       set_trigger(param_.flash_output, param_.flash_offset);
 
       /// Duty cycle test.
@@ -362,6 +363,7 @@ i3ds::CosineCamera::handle_flash(FlashService::Data& command)
   else
     {
       // Clear trigger, not enabled when operational.
+      BOOST_LOG_TRIVIAL(info) << "Clear/stop flash. output: " << param_.flash_output;
       clear_trigger(param_.flash_output);
     }
 
@@ -392,6 +394,7 @@ i3ds::CosineCamera::handle_pattern(PatternService::Data& command)
       pattern_sequence_ = command.request.sequence;
 
       // Enable trigger for flash.
+      BOOST_LOG_TRIVIAL(info) << " Enable pattern projector trigger_pattern_output no: " << param_.trigger_pattern_output << " trigger pattern offset: " << param_.trigger_pattern_offset;
       set_trigger(param_.trigger_pattern_output, param_.trigger_pattern_offset);
     }
   else
@@ -400,6 +403,7 @@ i3ds::CosineCamera::handle_pattern(PatternService::Data& command)
       pattern_sequence_ = 0;
 
       // Clear trigger, not enabled when operational.
+      BOOST_LOG_TRIVIAL(info) << " Clear/stop pattern projector trigger_pattern_output no: " << param_.trigger_pattern_output;
       clear_trigger(param_.trigger_pattern_output);
     }
 }
