@@ -257,6 +257,7 @@ i3ds::CosineCamera::handle_auto_exposure(AutoExposureService::Data& command)
     }
 }
 
+/// REMARK: Does not prevent setting to big combination of strength & duration. But report an warning later.
 void
 i3ds::CosineCamera::handle_flash(FlashService::Data& command)
 {
@@ -266,6 +267,7 @@ i3ds::CosineCamera::handle_flash(FlashService::Data& command)
 
   if (!trigger_)
     {
+      BOOST_LOG_TRIVIAL(info) << "Flash not supported in free-running mode.";
       throw i3ds::CommandError(error_other, "Flash not supported in free-running mode");
     }
 
@@ -285,7 +287,7 @@ i3ds::CosineCamera::handle_flash(FlashService::Data& command)
 
       if (auto_exposure_enabled())
       {
-	//flash_duration_in_ms = ebus_->AutoExposureTimeAbsUpperLimit.GetValue() / 1000.;
+	  /// REMARK: Is this actually relevant or correct ?
 	flash_duration_in_us = ebus_->getParameter("MaxShutterTimeValue"); // Camera parameter is in uS
       }
       else
@@ -294,12 +296,13 @@ i3ds::CosineCamera::handle_flash(FlashService::Data& command)
       }
       BOOST_LOG_TRIVIAL(info) << "handle_flash() Flash duration in us: " << flash_duration_in_us;
 
-      // Upper limit for flash
+      // Enforce upper limit for flash
       if (flash_duration_in_us > 3000)
       {
 	flash_duration_in_us = 3000;
       }
 
+      // Enforce lower limit for flash
       if (flash_duration_in_us <= 10)
 	{
 	  flash_duration_in_us = 10;
@@ -325,7 +328,8 @@ i3ds::CosineCamera::handle_flash(FlashService::Data& command)
 	  flash_client.set_flash(flash_duration_in_us, flash_strength_);
       } catch(std::exception & e)
 	{
-	  // Enable trigger for flash.
+	  // Enable trigger for flash even if correction of the combination strength & duration.
+	  // But sending the warning anyway.
 	  set_trigger(param_.flash_output, param_.flash_offset);
 
 	  throw;
