@@ -275,7 +275,6 @@ i3ds::CosineCamera::handle_flash(FlashService::Data& command)
     {
       flash_strength_ = command.request.strength;
 
-
       if (flash_strength_ > 100)
       {
 	BOOST_LOG_TRIVIAL(info) << "The flash can not give more than 100%";
@@ -333,6 +332,28 @@ i3ds::CosineCamera::handle_flash(FlashService::Data& command)
 	}
 
       set_trigger(param_.flash_output, param_.flash_offset);
+
+      /// Duty cycle test.
+      float dutyCycle = static_cast<float>(flash_duration_in_us) / period();
+
+      if(flash_strength_ > 51 && dutyCycle > 0.01)
+	{
+	  BOOST_LOG_TRIVIAL(info) << "Warning: The duty cycle for flash is to large. Some triggering may be suppressed.";
+	  throw i3ds::CommandError(error_value, "Warning: The duty cycle for flash is to large. Some triggering may be suppressed.");
+	}
+
+      if(flash_strength_ > 31 && dutyCycle > 0.02)
+	{
+	  BOOST_LOG_TRIVIAL(info) << "Warning: The duty cycle for flash is to large. Some triggering may be suppressed.";
+	  throw i3ds::CommandError(error_value, "Warning: The duty cycle for flash is to large. Some triggering may be suppressed.");
+	}
+
+      if(flash_strength_ < 30 && dutyCycle > 0.01)
+	{
+	  BOOST_LOG_TRIVIAL(info) << "Warning: The duty cycle for flash is to large. Some triggering may be suppressed.";
+	  throw i3ds::CommandError(error_value, "Warning: The duty cycle for flash is to large. Some triggering may be suppressed.");
+	}
+
     }
   else
     {
