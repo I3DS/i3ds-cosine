@@ -27,104 +27,114 @@ class EbusWrapper;
 namespace i3ds
 {
 
-class CosineCamera : public Camera
-{
-public:
+    class CosineCamera : public Camera
+    {
+        public:
 
-  struct Parameters
-  {
-    std::string camera_name;
-    bool is_stereo;
-    bool free_running;
-    int trigger_scale;
-    int data_depth;
+            struct Parameters
+            {
+                std::string camera_name;
+                bool is_stereo;
+                bool free_running;
+                int trigger_scale;
+                int data_depth;
 
-    TriggerGenerator trigger_generator;
-    TriggerOutput trigger_camera_output;
-    TriggerOffset trigger_camera_offset;
+                TriggerGenerator trigger_generator;
+                TriggerOutput trigger_camera_output;
+                TriggerOffset trigger_camera_offset;
 
-    TriggerOutput flash_output;
-    TriggerOffset flash_offset;
+                TriggerOutput flash_output;
+                TriggerOffset flash_offset;
 
-    bool trigger_camera_inverted; // Not used at the moment
+                bool trigger_camera_inverted; // Not used at the moment
 
-    TriggerOutput trigger_pattern_output;
-    TriggerOffset trigger_pattern_offset;
-    std::string wa_flash_port;
-
-
-  };
-
-  CosineCamera(Context::Ptr context, NodeID id, NodeID flash_node_id, Parameters param, TriggerClient::Ptr trigger = nullptr);
-
-  virtual ~CosineCamera();
-
-  // Getters.
-  virtual ShutterTime shutter() const;
-  virtual SensorGain gain() const;
-
-  virtual bool auto_exposure_enabled() const;
-
-  virtual ShutterTime max_shutter() const;
-  virtual SensorGain max_gain() const;
-
-  virtual PlanarRegion region() const;
-
-  virtual bool flash_enabled() const {return flash_enabled_;}
-  virtual FlashStrength flash_strength() const {return flash_strength_;}
-
-  virtual bool pattern_enabled() const {return pattern_enabled_;}
-  virtual PatternSequence pattern_sequence() const {return pattern_sequence_;}
-
-  virtual bool is_sampling_supported(SampleCommand sample);
+                TriggerOutput trigger_pattern_output;
+                TriggerOffset trigger_pattern_offset;
+                std::string wa_flash_port;
 
 
+            };
 
-protected:
+            CosineCamera ( Context::Ptr context, NodeID id, NodeID flash_node_id, Parameters param, TriggerClient::Ptr trigger = nullptr );
 
-  // Actions.
-  virtual void do_activate();
-  virtual void do_start();
-  virtual void do_stop();
-  virtual void do_deactivate();
+            virtual ~CosineCamera();
 
-  // Handlers.
-  virtual void handle_exposure(ExposureService::Data& command);
-  virtual void handle_auto_exposure(AutoExposureService::Data& command);
-  virtual void handle_flash(FlashService::Data& command);
-  virtual void handle_pattern(PatternService::Data& command);
+            // Getters.
+            virtual ShutterTime shutter() const;
+            virtual SensorGain gain() const;
 
-private:
+            virtual bool auto_exposure_enabled() const;
 
-  const Parameters param_;
+            virtual ShutterTime max_shutter() const;
+            virtual SensorGain max_gain() const;
 
-  int64_t to_trigger(SamplePeriod period);
-  SamplePeriod to_period(int64_t trigger);
-  void set_trigger(TriggerOutput channel, TriggerOffset offset);
-  void clear_trigger(TriggerOutput channel);
+            virtual PlanarRegion region() const;
+
+            virtual bool flash_enabled() const
+            {
+                return flash_enabled_;
+            }
+            virtual FlashStrength flash_strength() const
+            {
+                return flash_strength_;
+            }
+
+            virtual bool pattern_enabled() const
+            {
+                return pattern_enabled_;
+            }
+            virtual PatternSequence pattern_sequence() const
+            {
+                return pattern_sequence_;
+            }
+
+            virtual bool is_sampling_supported ( SampleCommand sample );
 
 
-  bool send_sample(unsigned char* image, int width, int height);
+
+        protected:
+
+            // Actions.
+            virtual void do_activate();
+            virtual void do_start();
+            virtual void do_stop();
+            virtual void do_deactivate();
+
+            // Handlers.
+            virtual void handle_exposure ( ExposureService::Data &command );
+            virtual void handle_auto_exposure ( AutoExposureService::Data &command );
+            virtual void handle_flash ( FlashService::Data &command );
+            virtual void handle_pattern ( PatternService::Data &command );
+
+        private:
+
+            const Parameters param_;
+
+            int64_t to_trigger ( SamplePeriod period );
+            SamplePeriod to_period ( int64_t trigger );
+            void set_trigger ( TriggerOutput channel, TriggerOffset offset );
+            void clear_trigger ( TriggerOutput channel );
 
 
-  void updateRegion();
+            bool send_sample ( unsigned char *image, int width, int height );
 
-  bool flash_enabled_;
-  FlashStrength flash_strength_;
+            void updateRegion();
 
-  bool pattern_enabled_;
-  PatternSequence pattern_sequence_;
+            bool flash_enabled_;
+            FlashStrength flash_strength_;
 
-  Publisher publisher_;
+            bool pattern_enabled_;
+            PatternSequence pattern_sequence_;
 
-  std::unique_ptr<EbusWrapper> ebus_;
+            Publisher publisher_;
 
-  TriggerClient::Ptr trigger_;
-  TriggerOutputSet trigger_outputs_;
+            std::unique_ptr<EbusWrapper> ebus_;
 
-  FlashClient flash_client;
+            TriggerClient::Ptr trigger_;
+            TriggerOutputSet trigger_outputs_;
 
-};
+            FlashClient flash_client;
+    };
 
 } // namespace i3ds
 
