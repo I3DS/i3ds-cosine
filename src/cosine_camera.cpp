@@ -15,7 +15,8 @@
 #include <exception>
 
 #include "cosine_camera.hpp"
-#include "ebus_wrapper.hpp"
+
+#include <PvSampleUtils.h>
 
 #define BOOST_LOG_DYN_LINK
 
@@ -25,37 +26,11 @@
 
 namespace logging = boost::log;
 
-i3ds::CosineCamera::CosineCamera ( Context::Ptr context,
-                                   NodeID node,
-                                   NodeID flash_node_id,
-                                   Parameters param,
-                                   TriggerClient::Ptr trigger )
-  : Camera ( node ),
-    param_ ( param ),
-    publisher_ ( context, node ),
-    trigger_ ( trigger ),
-    flash_client ( context, flash_node_id )
+i3ds::CosineCamera::CosineCamera(Context::Ptr context, NodeID id, GigECamera::Parameters param, int trigger_scale)
+  : GigECamera(context, id, param),
+    trigger_scale_(trigger_scale)
 {
-  using namespace std::placeholders;
-
   BOOST_LOG_TRIVIAL ( info ) << "CosineCamera::CosineCamera()";
-
-  auto op = std::bind ( &i3ds::CosineCamera::send_sample, this, _1, _2, _3 );
-
-  ebus_ = std::unique_ptr<EbusWrapper> ( new EbusWrapper ( param.camera_name, op ) );
-
-  flash_enabled_ = false;
-  flash_strength_ = 0.0;
-
-  pattern_enabled_ = false;
-  pattern_sequence_ = 0;
-
-
-  if ( trigger_ )
-    {
-      // Only wait 100 ms for trigger service.
-      trigger_->set_timeout ( 100 );
-    }
 }
 
 i3ds::CosineCamera::~CosineCamera()
@@ -69,7 +44,8 @@ i3ds::CosineCamera::Open()
 
   // Connect to the selected Device
   PvResult lResult = PvResult::Code::INVALID_PARAMETER;
-  mDevice = PvDevice::CreateAndConnect ( mConnectionID, &lResult );
+
+  device_ = PvDevice::CreateAndConnect ( mConnectionID, &lResult );
 
   if ( !lResult.IsOK() )
     {
@@ -79,19 +55,19 @@ i3ds::CosineCamera::Open()
     }
 
   // Register this class as an event sink for PvDevice call-backs
-  mDevice->RegisterEventSink ( this );
-  
+  device_->RegisterEventSink ( this );
+
   // Clear connection lost flag as we are now connected to the device
   mConnectionLost = false;
   BOOST_LOG_TRIVIAL ( info ) << "Connected to Camera";
-  
-  PvDeviceGEV *lDeviceGEV = dynamic_cast<PvDeviceGEV *> ( mDevice );
+
+  PvDeviceGEV *lDeviceGEV = dynamic_cast<PvDeviceGEV *> ( device_ );
 
   fetched_ipaddress = lDeviceGEV->GetIPAddress();
   BOOST_LOG_TRIVIAL ( info ) << "IP ADDRESS got from camera" << fetched_ipaddress.GetAscii();
 
   collectParameters();
-  
+
   if ( param_.image_count > 1)
     {
       setEnum("SourceSelector", "All", true);
@@ -103,14 +79,14 @@ i3ds::CosineCamera::Close()
 {
   BOOST_LOG_TRIVIAL ( info ) << "do_deactivate()";
 
-  ebus_->Disconnect();
+  device_->Disconnect();
 }
 
 void
 i3ds::CosineCamera::Start()
 {
   BOOST_LOG_TRIVIAL ( info ) << "do_start()";
-  
+
   setEnum ( "AcquisitionMode", "Continuous" );
 
   if (param_.external_trigger)
@@ -118,7 +94,7 @@ i3ds::CosineCamera::Start()
       timeout_ = 200;
       setEnum ( "TriggerMode", "EXT_ONLY" );
     }
-  else ( free_running )
+  else
     {
       timeout_ = (int) (2 * period() / 1000);
       setEnum ( "TriggerMode", "Interval" );
@@ -138,9 +114,9 @@ i3ds::CosineCamera::Stop()
 
   if ( thread_.joinable() )
     {
-      threadSamplingLoop.join();
+      thread_.join();
     }
-  
+
   TearDown ( true );
 }
 
@@ -149,7 +125,7 @@ i3ds::CosineCamera::setInternalTrigger(int64_t period_us)
 {
   // TODO: Check this computation.
   int64_t trigger = to_trigger(period_us);
-  
+
   int64_t min = getMinParameter("TriggerInterval");
   int64_t max = getMaxParameter("TriggerInterval");
 
@@ -397,20 +373,20 @@ i3ds::CosineCamera::gain_to_raw(double gain) const
 int64_t
 i3ds::CosineCamera::to_trigger(int64_t period)
 {
-  return (period * param_.trigger_scale) / 1000000;
+  return (period * trigger_scale_) / 1000000;
 }
 
 int64_t
 i3ds::CosineCamera::to_period(int64_t trigger)
 {
-  return (trigger * 1000000) / param_.trigger_scale;
+  return (trigger * 1000000) / trigger_scale_;
 }
 
 void
 i3ds::CosineCamera::OnLinkDisconnected ( PvDevice *aDevice )
 {
   BOOST_LOG_TRIVIAL ( info )
-    << "=====> PvDeviceEventSink::OnLinkDisconnected callback";
+      << "=====> PvDeviceEventSink::OnLinkDisconnected callback";
 
   mConnectionLost = true;
 
@@ -427,7 +403,7 @@ void
 i3ds::CosineCamera::collectParameters()
 {
   BOOST_LOG_TRIVIAL ( info ) << "Collecting Camera parameters";
-  lParameters = mDevice->GetParameters();
+  lParameters = device_->GetParameters();
 }
 
 int64_t
@@ -435,7 +411,7 @@ i3ds::CosineCamera::getParameter ( PvString whichParameter ) const
 {
 
   BOOST_LOG_TRIVIAL ( info ) << "Fetching parameter: "
-			     << whichParameter.GetAscii();
+                             << whichParameter.GetAscii();
   PvGenParameter *lParameter = lParameters->Get ( whichParameter );
   PvGenInteger *lIntParameter = dynamic_cast<PvGenInteger *> ( lParameter );
 
@@ -444,7 +420,7 @@ i3ds::CosineCamera::getParameter ( PvString whichParameter ) const
       ostringstream errorDescription;
 
       BOOST_LOG_TRIVIAL ( info ) << "Unable to get the parameter: "
-				 << whichParameter.GetAscii();
+                                 << whichParameter.GetAscii();
 
       errorDescription << "getParameter: Unable to get the parameter: " << whichParameter.GetAscii();
 
@@ -466,7 +442,7 @@ i3ds::CosineCamera::getParameter ( PvString whichParameter ) const
     }
 
   BOOST_LOG_TRIVIAL ( info ) << "Parametervalue: " << lParameterValue
-			     << " returned from parameter: " << whichParameter.GetAscii();
+                             << " returned from parameter: " << whichParameter.GetAscii();
   return lParameterValue;
 }
 
@@ -484,7 +460,7 @@ i3ds::CosineCamera::getMinParameter ( PvString whichParameter ) const
   if ( lMinParameter == NULL )
     {
       BOOST_LOG_TRIVIAL ( info ) << "Unable to get the Minimum parameter for: "
-				 << whichParameter.GetAscii();
+                                 << whichParameter.GetAscii();
     }
 
   int64_t lMinValue = 0;
@@ -496,7 +472,7 @@ i3ds::CosineCamera::getMinParameter ( PvString whichParameter ) const
   else
     {
       BOOST_LOG_TRIVIAL ( info ) << "Minimum value for parameter: "
-				 << whichParameter.GetAscii() << " : " << lMinValue;
+                                 << whichParameter.GetAscii() << " : " << lMinValue;
     }
 
   return lMinValue;
@@ -516,21 +492,21 @@ i3ds::CosineCamera::getMaxParameter ( PvString whichParameter ) const
   if ( lMaxParameter == NULL )
     {
       BOOST_LOG_TRIVIAL ( info ) << "Unable to get parameter "
-				 << whichParameter.GetAscii();
+                                 << whichParameter.GetAscii();
     }
 
   int64_t lMaxAllowedValue = 0;
   if ( ! ( lMaxParameter->GetMax ( lMaxAllowedValue ).IsOK() ) )
     {
       BOOST_LOG_TRIVIAL ( info )
-	<< "Error retrieving max value from device for parameter "
-	<< whichParameter.GetAscii();
+          << "Error retrieving max value from device for parameter "
+          << whichParameter.GetAscii();
       return 0;
     }
   else
     {
       BOOST_LOG_TRIVIAL ( info ) << "Max allowed value for parameter: "
-				 << whichParameter.GetAscii() << " is " << lMaxAllowedValue;
+                                 << whichParameter.GetAscii() << " is " << lMaxAllowedValue;
       return lMaxAllowedValue;
     }
 
@@ -576,10 +552,10 @@ i3ds::CosineCamera::getEnum ( PvString whichParameter ) const
 
 bool
 i3ds::CosineCamera::checkIfEnumOptionIsOK ( PvString whichParameter,
-					    PvString value )
+    PvString value ) const
 {
   BOOST_LOG_TRIVIAL ( info ) << "checkIfEnumOptionIsOK: Parameter: "
-			     << whichParameter.GetAscii() << "Value: " << value.GetAscii();
+                             << whichParameter.GetAscii() << "Value: " << value.GetAscii();
 
   //To pull out enums options
 
@@ -597,11 +573,11 @@ i3ds::CosineCamera::checkIfEnumOptionIsOK ( PvString whichParameter,
       PvString enumOption;
       aEntry->GetName ( enumOption );
       BOOST_LOG_TRIVIAL ( info ) << "EnumText[" << i << "]: "
-				 << enumOption.GetAscii();
+                                 << enumOption.GetAscii();
       if ( enumOption == value )
         {
-	  BOOST_LOG_TRIVIAL ( info ) << "Option found.";
-	  return true;
+          BOOST_LOG_TRIVIAL ( info ) << "Option found.";
+          return true;
         }
     }
 
@@ -610,7 +586,7 @@ i3ds::CosineCamera::checkIfEnumOptionIsOK ( PvString whichParameter,
   ostringstream errorDescription;
 
   errorDescription << "checkEnum: Option: " << value.GetAscii() << " does not exists for parameter: "
-		   << whichParameter.GetAscii();
+                   << whichParameter.GetAscii();
 
   throw i3ds::CommandError ( error_value, errorDescription.str() );
 }
@@ -620,7 +596,7 @@ void
 i3ds::CosineCamera::setEnum ( PvString whichParameter, PvString value, bool dontCheckParameter )
 {
   BOOST_LOG_TRIVIAL ( info ) << "setEnum: Parameter: "
-			     << whichParameter.GetAscii() << " Value: " << value.GetAscii();
+                             << whichParameter.GetAscii() << " Value: " << value.GetAscii();
   BOOST_LOG_TRIVIAL ( info ) << "do checkIfEnumOptionIsOK: Parameter first";
 
   bool enumOK = true;
@@ -639,27 +615,27 @@ i3ds::CosineCamera::setEnum ( PvString whichParameter, PvString value, bool dont
 
       if ( lEnumParameter == NULL )
         {
-	  BOOST_LOG_TRIVIAL ( info ) << "Unable to get the parameter: " << whichParameter.GetAscii();
-	  ostringstream errorDescription;
-	  errorDescription << "setEnum: Unable to get parameter: " << whichParameter.GetAscii();
+          BOOST_LOG_TRIVIAL ( info ) << "Unable to get the parameter: " << whichParameter.GetAscii();
+          ostringstream errorDescription;
+          errorDescription << "setEnum: Unable to get parameter: " << whichParameter.GetAscii();
 
-	  throw i3ds::CommandError ( error_value, errorDescription.str() );
+          throw i3ds::CommandError ( error_value, errorDescription.str() );
         }
 
       if ( ! ( lEnumParameter->SetValue ( value ).IsOK() ) )
         {
-	  BOOST_LOG_TRIVIAL ( info ) << "Error setting parameter for device";
-	  ostringstream errorDescription;
-	  errorDescription << "setEnum: Error setting value: " << value.GetAscii() <<
-	    " for parameter: " << whichParameter.GetAscii();
+          BOOST_LOG_TRIVIAL ( info ) << "Error setting parameter for device";
+          ostringstream errorDescription;
+          errorDescription << "setEnum: Error setting value: " << value.GetAscii() <<
+                           " for parameter: " << whichParameter.GetAscii();
 
-	  throw i3ds::CommandError ( error_value, errorDescription.str() );
+          throw i3ds::CommandError ( error_value, errorDescription.str() );
         }
       else
         {
-	  BOOST_LOG_TRIVIAL ( info ) << "Parameter value: " << value.GetAscii()
-				     << " set for parameter: " << whichParameter.GetAscii();
-	  return;
+          BOOST_LOG_TRIVIAL ( info ) << "Parameter value: " << value.GetAscii()
+                                     << " set for parameter: " << whichParameter.GetAscii();
+          return;
         }
 
     }
@@ -668,7 +644,7 @@ i3ds::CosineCamera::setEnum ( PvString whichParameter, PvString value, bool dont
       BOOST_LOG_TRIVIAL ( info ) << "Illegal parameter value";
       ostringstream errorDescription;
       errorDescription << "setEnum: Illegal parameter value: " << value.GetAscii() <<
-	" for parameter: " << whichParameter.GetAscii();
+                       " for parameter: " << whichParameter.GetAscii();
       throw i3ds::CommandError ( error_value, errorDescription.str() );
     }
 }
@@ -689,7 +665,7 @@ i3ds::CosineCamera::getBooleanParameter ( PvString whichParameter ) const
   else
     {
       BOOST_LOG_TRIVIAL ( info ) << whichParameter.GetAscii()
-				 << "Boolean: FALSE";
+                                 << "Boolean: FALSE";
       return true;
     }
 }
@@ -708,7 +684,7 @@ i3ds::CosineCamera::setBooleanParameter ( PvString whichParameter, bool status )
       ostringstream errorDescription;
 
       errorDescription << "setBooleanParameter Option: Unable to set the parameter: "
-		       << whichParameter.GetAscii();
+                       << whichParameter.GetAscii();
 
       throw i3ds::CommandError ( error_value, errorDescription.str() );
     }
@@ -729,11 +705,11 @@ i3ds::CosineCamera::setIntParameter ( PvString whichParameter, int64_t value )
   if ( lvalueParameter == NULL )
     {
       BOOST_LOG_TRIVIAL ( info )
-	<< "SetParameter: Unable to get the parameter: "
-	<< whichParameter.GetAscii();
+          << "SetParameter: Unable to get the parameter: "
+          << whichParameter.GetAscii();
       ostringstream errorDescription;
       errorDescription << "setIntParameter Option: SetParameter: Unable to get the parameter: "
-		       << whichParameter.GetAscii();
+                       << whichParameter.GetAscii();
       throw i3ds::CommandError ( error_value, errorDescription.str() );
     }
 
@@ -741,13 +717,13 @@ i3ds::CosineCamera::setIntParameter ( PvString whichParameter, int64_t value )
   if ( value > max )
     {
       BOOST_LOG_TRIVIAL ( info ) << "Setting value Error: Parameter: "
-				 << whichParameter.GetAscii() << " value too big " << value << " (Max: "
-				 << max << ")";
+                                 << whichParameter.GetAscii() << " value too big " << value << " (Max: "
+                                 << max << ")";
 
 
-      NodeID node, ostringstream errorDescription;
+      ostringstream errorDescription;
       errorDescription << "setIntParameter: " << whichParameter.GetAscii() << " value to large " <<
-	value << ".(Max: " << max << ")" ;
+                       value << ".(Max: " << max << ")" ;
       throw i3ds::CommandError ( error_value, errorDescription.str() );
 
     };
@@ -756,10 +732,10 @@ i3ds::CosineCamera::setIntParameter ( PvString whichParameter, int64_t value )
   if ( value < min )
     {
       BOOST_LOG_TRIVIAL ( info ) << "Error: value to small " << value << "<"
-				 << min;
+                                 << min;
       ostringstream errorDescription;
       errorDescription << "setIntParameter: " << whichParameter.GetAscii() << " Value to small " <<
-	value << ".(Min: " << min << ")";
+                       value << ".(Min: " << min << ")";
       throw i3ds::CommandError ( error_value, errorDescription.str() );
 
     };
@@ -770,7 +746,7 @@ i3ds::CosineCamera::setIntParameter ( PvString whichParameter, int64_t value )
   if ( !res.IsOK() )
     {
       BOOST_LOG_TRIVIAL ( info ) << "SetValue Error: "
-				 << whichParameter.GetAscii();
+                                 << whichParameter.GetAscii();
 
       ostringstream errorDescription;
       errorDescription << "setIntParameter: SetValue Error " << whichParameter.GetAscii() ;
@@ -792,8 +768,8 @@ i3ds::CosineCamera::OpenStream()
   PvResult lResult = PvResult::Code::INVALID_PARAMETER;
 
   BOOST_LOG_TRIVIAL ( info ) << "--> OpenStream "
-			     << " id: " << mConnectionID.GetAscii()
-			     << " address: " << fetched_ipaddress.GetAscii();
+                             << " id: " << mConnectionID.GetAscii()
+                             << " address: " << fetched_ipaddress.GetAscii();
 
   mStream = PvStream::CreateAndOpen ( fetched_ipaddress.GetAscii(), &lResult );
 
@@ -806,7 +782,7 @@ i3ds::CosineCamera::OpenStream()
   mPipeline = new PvPipeline ( mStream );
 
   // Reading payload size from device
-  int64_t lSize = mDevice->GetPayloadSize();
+  int64_t lSize = device_->GetPayloadSize();
 
   // Create, init the PvPipeline object
   mPipeline->SetBufferSize ( static_cast<uint32_t> ( lSize ) );
@@ -824,7 +800,7 @@ i3ds::CosineCamera::OpenStream()
   // Only for GigE Vision, if supported
   PvGenBoolean *lRequestMissingPackets =
     dynamic_cast<PvGenBoolean *> ( mStream->GetParameters()->GetBoolean (
-									 "RequestMissingPackets" ) );
+                                     "RequestMissingPackets" ) );
 
   if ( ( lRequestMissingPackets != NULL )
        && lRequestMissingPackets->IsAvailable() )
@@ -849,9 +825,9 @@ i3ds::CosineCamera::CloseStream()
     {
       if ( mPipeline->IsStarted() )
         {
-	  if ( !mPipeline->Stop().IsOK() )
+          if ( !mPipeline->Stop().IsOK() )
             {
-	      BOOST_LOG_TRIVIAL ( info ) << "Unable to stop the pipeline.";
+              BOOST_LOG_TRIVIAL ( info ) << "Unable to stop the pipeline.";
             }
         }
 
@@ -863,9 +839,9 @@ i3ds::CosineCamera::CloseStream()
     {
       if ( mStream->IsOpen() )
         {
-	  if ( !mStream->Close().IsOK() )
+          if ( !mStream->Close().IsOK() )
             {
-	      BOOST_LOG_TRIVIAL ( info ) << "Unable to stop the stream.";
+              BOOST_LOG_TRIVIAL ( info ) << "Unable to stop the stream.";
             }
         }
 
@@ -891,7 +867,7 @@ i3ds::CosineCamera::StartAcquisition()
     }
 
   // Set streaming destination (only GigE Vision devces)
-  PvDeviceGEV *lDeviceGEV = dynamic_cast<PvDeviceGEV *> ( mDevice );
+  PvDeviceGEV *lDeviceGEV = dynamic_cast<PvDeviceGEV *> ( device_ );
   if ( lDeviceGEV != NULL )
     {
       // If using a GigE Vision, it is same to assume the stream object is GigE Vision as well
@@ -899,22 +875,22 @@ i3ds::CosineCamera::StartAcquisition()
 
       // Have to set the Device IP destination to the Stream
       PvResult lResult = lDeviceGEV->SetStreamDestination (
-							   lStreamGEV->GetLocalIPAddress(), lStreamGEV->GetLocalPort() );
+                           lStreamGEV->GetLocalIPAddress(), lStreamGEV->GetLocalPort() );
       if ( !lResult.IsOK() )
         {
-	  BOOST_LOG_TRIVIAL ( info ) << "Setting stream destination failed"
-				     << lStreamGEV->GetLocalIPAddress().GetAscii() << ":"
-				     << lStreamGEV->GetLocalPort();
+          BOOST_LOG_TRIVIAL ( info ) << "Setting stream destination failed"
+                                     << lStreamGEV->GetLocalIPAddress().GetAscii() << ":"
+                                     << lStreamGEV->GetLocalPort();
 
-	  return false;
+          return false;
         }
     }
 
   // Enables stream before sending the AcquisitionStart command.
-  mDevice->StreamEnable();
+  device_->StreamEnable();
 
   // The pipeline is already "armed", we just have to tell the device to start sending us images
-  PvResult lResult = mDevice->GetParameters()->ExecuteCommand ( "AcquisitionStart" );
+  PvResult lResult = device_->GetParameters()->ExecuteCommand ( "AcquisitionStart" );
 
   if ( !lResult.IsOK() )
     {
@@ -936,12 +912,12 @@ i3ds::CosineCamera::StopAcquisition()
   BOOST_LOG_TRIVIAL ( info ) << "--> StopAcquisition";
 
   // Tell the device to stop sending images.
-  mDevice->GetParameters()->ExecuteCommand ( "AcquisitionStop" );
+  device_->GetParameters()->ExecuteCommand ( "AcquisitionStop" );
 
   // Disable stream after sending the AcquisitionStop command.
-  mDevice->StreamDisable();
+  device_->StreamDisable();
 
-  PvDeviceGEV *lDeviceGEV = dynamic_cast<PvDeviceGEV *> ( mDevice );
+  PvDeviceGEV *lDeviceGEV = dynamic_cast<PvDeviceGEV *> ( device_ );
   if ( lDeviceGEV != NULL )
     {
       // Reset streaming destination (optional...)
@@ -949,6 +925,23 @@ i3ds::CosineCamera::StopAcquisition()
     }
 
   return true;
+}
+
+//
+// Tear down: closes, disconnects, etc.
+//
+void
+i3ds::CosineCamera::TearDown ( bool aStopAcquisition )
+{
+  BOOST_LOG_TRIVIAL ( info ) << "--> TearDown";
+
+  if ( aStopAcquisition )
+    {
+      StopAcquisition();
+    }
+
+  CloseStream();
+  //DisconnectDevice();
 }
 
 void
@@ -967,98 +960,98 @@ i3ds::CosineCamera::SamplingLoop()
     {
 
       //If connection flag is up, teardown device/stream
-      if ( mConnectionLost && ( mDevice != NULL ) )
+      if ( mConnectionLost && ( device_ != NULL ) )
         {
-	  // Device lost: no need to stop acquisition
-	  samplingErrorFlag = true;
-	  strncpy ( samplingErrorText, "Connection to camera lost", 25 );
-	  TearDown ( false );
+          // Device lost: no need to stop acquisition
+          samplingErrorFlag = true;
+          strncpy ( samplingErrorText, "Connection to camera lost", 25 );
+          TearDown ( false );
         }
 
       // Only set up stream first time and do not try to reconnect
       if ( first )
         {
-	  BOOST_LOG_TRIVIAL ( info ) << "First sample-> round initialise";
-	  // Device is connected, open the stream
-	  if ( OpenStream() )
+          BOOST_LOG_TRIVIAL ( info ) << "First sample-> round initialise";
+          // Device is connected, open the stream
+          if ( OpenStream() )
             {
-	      BOOST_LOG_TRIVIAL ( info ) << "OpenStream went well--> startAcquistion";
-	      // Device is connected, stream is opened: start acquisition
-	      if ( !StartAcquisition() )
+              BOOST_LOG_TRIVIAL ( info ) << "OpenStream went well--> startAcquistion";
+              // Device is connected, stream is opened: start acquisition
+              if ( !StartAcquisition() )
                 {
-		  BOOST_LOG_TRIVIAL ( info ) << "--> StartAcquisition error";
-		  samplingErrorFlag = true;
-		  strncpy ( samplingErrorText, "StartAcqisition error", 25 );
+                  BOOST_LOG_TRIVIAL ( info ) << "--> StartAcquisition error";
+                  samplingErrorFlag = true;
+                  strncpy ( samplingErrorText, "StartAcqisition error", 25 );
 
-		  TearDown ( false );
+                  TearDown ( false );
                 }
             }
-	  else
+          else
             {
-	      BOOST_LOG_TRIVIAL ( info ) << "-->OpenStream Error";
-	      samplingErrorFlag = true;
-	      strncpy ( samplingErrorText, "StartAcqisition error", 25 );
+              BOOST_LOG_TRIVIAL ( info ) << "-->OpenStream Error";
+              samplingErrorFlag = true;
+              strncpy ( samplingErrorText, "StartAcqisition error", 25 );
 
-	      TearDown ( false );
+              TearDown ( false );
             }
 
-	  first = false;
+          first = false;
         }
 
       // If still no device, no need to continue the loop
-      if ( mDevice == NULL )
+      if ( device_ == NULL )
         {
-	  break;
+          break;
         }
 
       if ( ( mStream != NULL ) && mStream->IsOpen() && ( mPipeline != NULL )
-	   && mPipeline->IsStarted() )
+           && mPipeline->IsStarted() )
         {
-	  // Retrieve next buffer
-	  PvBuffer *lBuffer = NULL;
-	  PvResult lOperationResult;
+          // Retrieve next buffer
+          PvBuffer *lBuffer = NULL;
+          PvResult lOperationResult;
 
 
-	  PvResult lResult = mPipeline->RetrieveNextBuffer ( &lBuffer, timeout_, &lOperationResult );
+          PvResult lResult = mPipeline->RetrieveNextBuffer ( &lBuffer, timeout_, &lOperationResult );
 
-	  if ( lResult.IsOK() )
+          if ( lResult.IsOK() )
             {
-	      if ( lOperationResult.IsOK() )
+              if ( lOperationResult.IsOK() )
                 {
-		  //
-		  // We now have a valid buffer. This is where you would typically process the buffer.
-		  // -----------------------------------------------------------------------------------------
-		  // ...
+                  //
+                  // We now have a valid buffer. This is where you would typically process the buffer.
+                  // -----------------------------------------------------------------------------------------
+                  // ...
 
-		  mStream->GetParameters()->GetIntegerValue ( "BlockCount", lImageCountVal );
-		  mStream->GetParameters()->GetFloatValue ( "AcquisitionRate", lFrameRateVal );
-		  mStream->GetParameters()->GetFloatValue ( "Bandwidth", lBandwidthVal );
+                  mStream->GetParameters()->GetIntegerValue ( "BlockCount", lImageCountVal );
+                  mStream->GetParameters()->GetFloatValue ( "AcquisitionRate", lFrameRateVal );
+                  mStream->GetParameters()->GetFloatValue ( "Bandwidth", lBandwidthVal );
 
-		  // If the buffer contains an image, display width and height.
+                  // If the buffer contains an image, display width and height.
 
-		  if ( lBuffer->GetPayloadType() == PvPayloadTypeImage )
+                  if ( lBuffer->GetPayloadType() == PvPayloadTypeImage )
                     {
-		      // Get image specific buffer interface.
-		      PvImage *lImage = lBuffer->GetImage();
-		      uint32_t lWidth = lImage->GetWidth();
-		      uint32_t lHeight = lImage->GetHeight();
+                      // Get image specific buffer interface.
+                      PvImage *lImage = lBuffer->GetImage();
+                      uint32_t lWidth = lImage->GetWidth();
+                      uint32_t lHeight = lImage->GetHeight();
 
-		      BOOST_LOG_TRIVIAL ( info ) << "Width: " << lWidth << " Height: " << lHeight;
+                      BOOST_LOG_TRIVIAL ( info ) << "Width: " << lWidth << " Height: " << lHeight;
 
-		      operation_ ( lImage->GetDataPointer(), lWidth, lHeight );
+                      send_sample ( lImage->GetDataPointer(), lWidth, lHeight );
                     }
                 }
 
-	      // We have an image - do some processing (...) and VERY IMPORTANT,
-	      // release the buffer back to the pipeline.
-	      mPipeline->ReleaseBuffer ( lBuffer );
+              // We have an image - do some processing (...) and VERY IMPORTANT,
+              // release the buffer back to the pipeline.
+              mPipeline->ReleaseBuffer ( lBuffer );
             }
-	  BOOST_LOG_TRIVIAL ( info ) << "sampling timeout without receiving good image: " << timeout_ << "ms";
+          BOOST_LOG_TRIVIAL ( info ) << "sampling timeout without receiving good image: " << timeout_ << "ms";
         }
       else
         {
-	  // No stream/pipeline, must be in recovery. Wait a bit...
-	  PvSleepMs ( 100 );
+          // No stream/pipeline, must be in recovery. Wait a bit...
+          PvSleepMs ( 100 );
 
         }
     }

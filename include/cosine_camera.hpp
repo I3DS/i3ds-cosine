@@ -26,11 +26,11 @@
 namespace i3ds
 {
 
-class CosineCamera : public GigECamera
+class CosineCamera : public GigECamera, protected PvDeviceEventSink
 {
 public:
-  
-  CosineCamera(Context::Ptr context, NodeID id, GigECamera::Parameters param);
+
+  CosineCamera(Context::Ptr context, NodeID id, GigECamera::Parameters param, int trigger_scale);
 
   virtual ~CosineCamera();
 
@@ -94,7 +94,12 @@ protected:
   virtual double getMinAutoGainLimit() const;
   virtual void setAutoGainLimit(double gain_limit);
 
+  // Inherited from PvDeviceEventSink.
+  virtual void OnLinkDisconnected(PvDevice* aDevice);
+
 private:
+
+  const int trigger_scale_;
 
   void collectParameters();
 
@@ -118,11 +123,11 @@ private:
   void setTriggerInterval();
   bool checkTriggerInterval(int64_t);
 
-  int64_t to_trigger ( SamplePeriod period );
-  SamplePeriod to_period ( int64_t trigger );
+  int64_t to_trigger ( int64_t period );
+  int64_t to_period ( int64_t trigger );
 
   void updateRegion();
-  
+
   bool OpenStream();
   void CloseStream();
 
@@ -134,25 +139,25 @@ private:
   void DisconnectDevice();
   void TearDown(bool aStopAcquisition);
 
-  static int const trigger_interval_factor;
-
   bool mConnectionLost;
 
   PvString mConnectionID;
 
-  mutable PvDevice* mDevice;
+  mutable PvDevice* device_;
   mutable PvGenParameterArray *lParameters;
 
   PvStream* mStream;
   PvPipeline* mPipeline;
+  PvString fetched_ipaddress;
 
   bool running_;
   std::thread thread_;
 
-  PvString fetched_ipaddress;
-  Operation operation_;
-
   int timeout_;
+
+  bool samplingErrorFlag;
+  char samplingErrorText[30];
+
 };
 
 } // namespace i3ds
