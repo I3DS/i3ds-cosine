@@ -79,8 +79,8 @@ int main ( int argc, char **argv )
   ("trigger-pattern-offset", po::value<int>(&param.pattern_offset)->default_value(0), "Trigger offset for pattern (us).")
 
   ("verbose,v", "Print verbose output")
-  ("quite,q", "Quiet ouput")
-  ("print", "Print the camera configuration")
+  ("quite,q", "Quiet output")
+  ("print,p", "Print the camera configuration")
   ;
 
   po::variables_map vm;
