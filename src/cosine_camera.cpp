@@ -44,7 +44,8 @@ i3ds::CosineCamera::Open()
 
   // Connect to the selected Device
   PvResult lResult = PvResult::Code::INVALID_PARAMETER;
-
+  mConnectionID = PvString(param_.camera_name.c_str());
+  BOOST_LOG_TRIVIAL ( info ) << "--> ConnectDevice Connection string: " << mConnectionID.GetAscii();
   device_ = PvDevice::CreateAndConnect ( mConnectionID, &lResult );
 
   if ( !lResult.IsOK() )
