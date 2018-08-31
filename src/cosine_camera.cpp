@@ -50,9 +50,11 @@ i3ds::CosineCamera::Open()
 
   if ( !lResult.IsOK() )
     {
-      BOOST_LOG_TRIVIAL ( info ) << "CreateAndConnect problem";
-
-      // TODO: Throw here.
+      BOOST_LOG_TRIVIAL ( error ) << "CreateAndConnect problem: " << lResult.GetCodeString().GetAscii();
+      throw i3ds::CommandError ( error_value, std::string("Connection problem(probably connection string): ") +
+				 mConnectionID.GetAscii() +
+				 std::string(", error code: ") +
+				 lResult.GetCodeString().GetAscii() );
     }
 
   // Register this class as an event sink for PvDevice call-backs
