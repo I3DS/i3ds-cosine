@@ -132,7 +132,7 @@ int main ( int argc, char **argv )
     }
   else
     {
-      std::cout << "Unknown camera type: " << camera_type << std::endl;
+      BOOST_LOG_TRIVIAL ( error ) << "Unknown camera type: " << camera_type << std::endl;
       return -1;
     }
 
