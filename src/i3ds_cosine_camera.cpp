@@ -49,7 +49,7 @@ int main ( int argc, char **argv )
   std::string camera_type;
   unsigned int node_id;
   int trigger_scale;
-
+  bool disable_external_trigger;
   i3ds::GigECamera::Parameters param;
 
   po::options_description desc("Allowed camera control options");
@@ -63,7 +63,7 @@ int main ( int argc, char **argv )
   ("package-size,p", po::value<int>(&param.packet_size)->default_value(8192), "Transport-layer buffersize (MTU).")
   ("package-delay,d", po::value<int>(&param.packet_delay)->default_value(20), "Inter-package delay parameter of camera.")
 
-  ("trigger", po::bool_switch(&param.external_trigger)->default_value(true), "External trigger. (Default true)")
+  ("trigger-disabled", po::bool_switch(&disable_external_trigger)->default_value(false), "Disabled external trigger system.")
   ("trigger-node", po::value<NodeID>(&param.trigger_node)->default_value(20), "Node ID of trigger service.")
   ("trigger-source", po::value<int>(&param.trigger_source)->default_value(1), "Trigger generator for camera.")
   ("trigger-camera-output", po::value<int>(&param.camera_output)->default_value(2), "Trigger output for camera.")
@@ -103,9 +103,14 @@ int main ( int argc, char **argv )
 
   po::notify(vm);
 
+  // To avoid changing the rest of the code where the variable is used.
+  param.external_trigger = !disable_external_trigger;
+
+
   BOOST_LOG_TRIVIAL ( info ) << "Node ID:     " << node_id;
   BOOST_LOG_TRIVIAL ( info ) << "Camera name: " << param.camera_name;
   BOOST_LOG_TRIVIAL ( info ) << "Camera type: " << camera_type;
+  BOOST_LOG_TRIVIAL ( info ) << "trigger: " << ((param.external_trigger)  ? "true" : "false");
 
   if ( camera_type == "hr" )
     {
