@@ -622,14 +622,12 @@ EbusWrapper::StartAcquisition()
 
   // The pipeline is already "armed", we just have to tell the device to start sending us images
   PvResult lResult = mDevice->GetParameters()->ExecuteCommand ( "AcquisitionStart" );
-
   if ( !lResult.IsOK() )
     {
       BOOST_LOG_TRIVIAL ( info ) << "Unable to start acquisition";
 
       return false;
     }
-
   return true;
 }
 
@@ -755,7 +753,6 @@ EbusWrapper::SamplingLoop()
                   // We now have a valid buffer. This is where you would typically process the buffer.
                   // -----------------------------------------------------------------------------------------
                   // ...
-
                   mStream->GetParameters()->GetIntegerValue ( "BlockCount", lImageCountVal );
                   mStream->GetParameters()->GetFloatValue ( "AcquisitionRate", lFrameRateVal );
                   mStream->GetParameters()->GetFloatValue ( "Bandwidth", lBandwidthVal );
@@ -770,7 +767,6 @@ EbusWrapper::SamplingLoop()
                       uint32_t lHeight = lImage->GetHeight();
 
                       BOOST_LOG_TRIVIAL ( info ) << "Width: " << lWidth << " Height: " << lHeight;
-
                       send_sample ( lImage->GetDataPointer(), lWidth, lHeight );
                     }
                 }
