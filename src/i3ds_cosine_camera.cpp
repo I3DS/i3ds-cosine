@@ -112,6 +112,10 @@ int main ( int argc, char **argv )
   BOOST_LOG_TRIVIAL ( info ) << "Camera type: " << camera_type;
   BOOST_LOG_TRIVIAL ( info ) << "trigger: " << ((param.external_trigger)  ? "true" : "false");
 
+
+  param.frame_mode = mode_mono;
+  param.pixel_size = 2;
+
   if ( camera_type == "hr" )
     {
       param.image_count = 1;
