@@ -597,8 +597,7 @@ EbusWrapper::StartAcquisition()
     {
       lStreamGEV->FlushPacketQueue();
     }
-
-  // Set streaming destination (only GigE Vision devces)
+  // Set streaming destination (only GigE Vision devices)
   PvDeviceGEV *lDeviceGEV = dynamic_cast<PvDeviceGEV *> ( mDevice );
   if ( lDeviceGEV != NULL )
     {
