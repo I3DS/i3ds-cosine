@@ -420,7 +420,8 @@ EbusWrapper::setIntParameter ( PvString whichParameter, int64_t value )
                                        << max << ")";
 
 
-            NodeID node, ostringstream errorDescription;
+            NodeID node;
+            ostringstream errorDescription;
             errorDescription << "setIntParameter: " << whichParameter.GetAscii() << " value to large " <<
                              value << ".(Max: " << max << ")" ;
             throw i3ds::CommandError ( error_value, errorDescription.str() );
