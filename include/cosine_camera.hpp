@@ -12,129 +12,153 @@
 #ifndef __COSINE_CAMERA_HPP
 #define __COSINE_CAMERA_HPP
 
-#include "i3ds/topic.hpp"
-#include "i3ds/publisher.hpp"
-#include "i3ds/camera_sensor.hpp"
-#include <i3ds/trigger_client.hpp>
+#include <i3ds/gige_camera_sensor.hpp>
 
-#include <i3ds/flash_client.hpp>
+#include <thread>
 
-
-#include <memory>
-
-class EbusWrapper;
+#include <PvDevice.h>
+#include <PvPipeline.h>
+#include <PvBuffer.h>
+#include <PvStream.h>
+#include <PvStreamGEV.h>
+#include <PvDeviceInfoGEV.h>
 
 namespace i3ds
 {
 
-    class CosineCamera : public Camera
-    {
-        public:
+class CosineCamera : public GigECamera, protected PvDeviceEventSink
+{
+public:
 
-            struct Parameters
-            {
-                std::string camera_name;
-                bool is_stereo;
-                bool free_running;
-                int trigger_scale;
-                int data_depth;
+  CosineCamera(Context::Ptr context, NodeID id, GigECamera::Parameters param, int trigger_scale);
 
-                TriggerGenerator trigger_generator;
-                TriggerOutput trigger_camera_output;
-                TriggerOffset trigger_camera_offset;
+  virtual ~CosineCamera();
 
-                TriggerOutput flash_output;
-                TriggerOffset flash_offset;
+protected:
 
-                bool trigger_camera_inverted; // Not used at the moment
+  // Camera control
+  virtual void Open();
+  virtual void Close();
+  virtual void Start();
+  virtual void Stop();
 
-                TriggerOutput trigger_pattern_output;
-                TriggerOffset trigger_pattern_offset;
-                std::string wa_flash_port;
+  // Set internal trigger to the given period.
+  virtual bool setInternalTrigger(int64_t period_us);
 
+  // Sensor width and height
+  virtual int64_t getSensorWidth() const;
+  virtual int64_t getSensorHeight() const;
 
-            };
+  // Region of interest
+  virtual bool isRegionSupported() const;
 
-            CosineCamera ( Context::Ptr context, NodeID id, NodeID flash_node_id, Parameters param, TriggerClient::Ptr trigger = nullptr );
+  virtual int64_t getRegionWidth() const;
+  virtual int64_t getRegionHeight() const;
+  virtual int64_t getRegionOffsetX() const;
+  virtual int64_t getRegionOffsetY() const;
 
-            virtual ~CosineCamera();
+  virtual void setRegionWidth(int64_t width);
+  virtual void setRegionHeight(int64_t height);
+  virtual void setRegionOffsetX(int64_t offset_x);
+  virtual void setRegionOffsetY(int64_t offset_y);
 
-            // Getters.
-            virtual ShutterTime shutter() const;
-            virtual SensorGain gain() const;
+  // Shutter time in microseconds
+  virtual int64_t getShutter() const;
+  virtual int64_t getMaxShutter() const;
+  virtual int64_t getMinShutter() const;
+  virtual void setShutter(int64_t shutter_us);
 
-            virtual bool auto_exposure_enabled() const;
+  virtual bool isAutoShutterSupported() const;
 
-            virtual ShutterTime max_shutter() const;
-            virtual SensorGain max_gain() const;
+  virtual bool getAutoShutterEnabled() const;
+  virtual void setAutoShutterEnabled(bool enable);
 
-            virtual PlanarRegion region() const;
+  virtual int64_t getAutoShutterLimit() const;
+  virtual int64_t getMaxAutoShutterLimit() const;
+  virtual int64_t getMinAutoShutterLimit() const;
+  virtual void setAutoShutterLimit(int64_t shutter_limit);
 
-            virtual bool flash_enabled() const
-            {
-                return flash_enabled_;
-            }
-            virtual FlashStrength flash_strength() const
-            {
-                return flash_strength_;
-            }
+  // Gain in decibel
+  virtual double getGain() const;
+  virtual double getMaxGain() const;
+  virtual double getMinGain() const;
+  virtual void setGain(double gain);
 
-            virtual bool pattern_enabled() const
-            {
-                return pattern_enabled_;
-            }
-            virtual PatternSequence pattern_sequence() const
-            {
-                return pattern_sequence_;
-            }
+  virtual bool isAutoGainSupported() const;
 
-            virtual bool is_sampling_supported ( SampleCommand sample );
+  virtual bool getAutoGainEnabled() const;
+  virtual void setAutoGainEnabled(bool enable);
 
+  virtual double getAutoGainLimit() const;
+  virtual double getMaxAutoGainLimit() const;
+  virtual double getMinAutoGainLimit() const;
+  virtual void setAutoGainLimit(double gain_limit);
 
+  // Inherited from PvDeviceEventSink.
+  virtual void OnLinkDisconnected(PvDevice* aDevice);
 
-        protected:
+private:
 
-            // Actions.
-            virtual void do_activate();
-            virtual void do_start();
-            virtual void do_stop();
-            virtual void do_deactivate();
+  const int trigger_scale_;
 
-            // Handlers.
-            virtual void handle_exposure ( ExposureService::Data &command );
-            virtual void handle_auto_exposure ( AutoExposureService::Data &command );
-            virtual void handle_flash ( FlashService::Data &command );
-            virtual void handle_pattern ( PatternService::Data &command );
+  void collectParameters();
 
-        private:
+  int64_t getParameter(PvString whichParameter) const;
+  int64_t getMaxParameter(PvString whichParameter) const;
+  int64_t getMinParameter(PvString whichParameter) const;
 
-            const Parameters param_;
+  bool setIntParameter(PvString whichParameter, int64_t value);
 
-            int64_t to_trigger ( SamplePeriod period );
-            SamplePeriod to_period ( int64_t trigger );
-            void set_trigger ( TriggerOutput channel, TriggerOffset offset );
-            void clear_trigger ( TriggerOutput channel );
+  bool getBooleanParameter(PvString whichParameter) const;
+  void setBooleanParameter(PvString whichParameter, bool status);
 
+  std::string getEnum(PvString whichParameter) const;
+  void setEnum(PvString whichParameter, PvString value, bool dontCheckParameter = false);
 
-            bool send_sample ( unsigned char *image, int width, int height );
+  bool checkIfEnumOptionIsOK(PvString whichParameter, PvString value) const;
 
-            void updateRegion();
+  double raw_to_gain(int64_t raw) const;
+  int64_t gain_to_raw(double gain) const;
 
-            bool flash_enabled_;
-            FlashStrength flash_strength_;
+  void setTriggerInterval();
+  bool checkTriggerInterval(int64_t);
 
-            bool pattern_enabled_;
-            PatternSequence pattern_sequence_;
+  int64_t to_trigger ( int64_t period );
+  int64_t to_period ( int64_t trigger );
 
-            Publisher publisher_;
+  void updateRegion();
 
-            std::unique_ptr<EbusWrapper> ebus_;
+  bool OpenStream();
+  void CloseStream();
 
-            TriggerClient::Ptr trigger_;
-            TriggerOutputSet trigger_outputs_;
+  bool StartAcquisition();
+  bool StopAcquisition();
 
-            FlashClient flash_client;
-    };
+  void SamplingLoop();
+
+  void DisconnectDevice();
+  void TearDown(bool aStopAcquisition);
+
+  bool mConnectionLost;
+
+  PvString mConnectionID;
+
+  mutable PvDevice* device_;
+  mutable PvGenParameterArray *lParameters;
+
+  PvStream* mStream;
+  PvPipeline* mPipeline;
+  PvString fetched_ipaddress;
+
+  bool running_;
+  std::thread thread_;
+
+  int timeout_;
+
+  bool samplingErrorFlag;
+  char samplingErrorText[30];
+
+};
 
 } // namespace i3ds
 
