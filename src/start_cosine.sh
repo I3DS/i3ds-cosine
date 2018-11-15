@@ -60,4 +60,4 @@ fi
 
 export LD_LIBRARY_PATH
 
-$DIRNAME/i3ds_cosine_camera --camera-type=${CAMERA_TYPE} $@
+exec $DIRNAME/i3ds_cosine_camera --camera-type=${CAMERA_TYPE} $@
