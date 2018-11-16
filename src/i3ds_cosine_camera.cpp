@@ -57,12 +57,12 @@ int main ( int argc, char **argv )
   ("help,h", "Produce this message")
   ("node,n", po::value<unsigned int>(&node_id)->default_value(10), "Node ID of camera")
 
+  ("camera-type,t", po::value<std::string>(&camera_type),       "Camera type {hr, tir, stereo} set by launch script")
   ("camera-name,c", po::value<std::string>(&param.camera_name), "Connect via (UserDefinedName) of Camera")
-  ("camera-type,t", po::value<std::string> ( &camera_type ),       "Camera type {hr, tir, stereo} set by launch script" )
   ("package-size,p", po::value<int>(&param.packet_size)->default_value(8192), "Transport-layer buffersize (MTU).")
   ("package-delay,d", po::value<int>(&param.packet_delay)->default_value(20), "Inter-package delay parameter of camera.")
 
-  ("trigger", po::value<bool>(&param.external_trigger)->default_value(true), "Enable external trigger system.")
+  ("trigger", po::value<bool>(&param.external_trigger)->default_value(true), "Enable external trigger.")
   ("trigger-node", po::value<NodeID>(&param.trigger_node)->default_value(20), "Node ID of trigger service.")
   ("trigger-source", po::value<int>(&param.trigger_source)->default_value(1), "Trigger generator for camera.")
   ("trigger-camera-output", po::value<int>(&param.camera_output)->default_value(2), "Trigger output for camera.")
@@ -78,7 +78,7 @@ int main ( int argc, char **argv )
   ("trigger-pattern-offset", po::value<int>(&param.pattern_offset)->default_value(0), "Trigger offset for pattern (us).")
 
   ("verbose,v", "Print verbose output")
-  ("quite,q", "Quiet output")
+  ("quiet,q", "Quiet output")
   ("print,p", "Print the camera configuration")
   ;
 
